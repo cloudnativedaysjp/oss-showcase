@@ -21,7 +21,7 @@ Namespace、ResourceQuota、LimitRange は運営が入れるので、来場者�
 
 ### リソースと権限の上限
 
-- 1 アプリの合計で、CPU 4 コア、メモリ 4Gi、Pod 10 個、PVC 2 個、emptyDir とログ 2Gi まで
+- 1 アプリの合計で、CPU 4 コア、メモリ 4Gi、Pod 10 個、PVC 2 個、emptyDir とログ 5Gi まで
 - コンテナは root で動いてよいが、特権コンテナと hostPath は使わない
 - イメージは認証なしで pull できるものにする
 - Secret もリポジトリで公開される。本物の認証情報やトークンは書かず、ダミーの値にする

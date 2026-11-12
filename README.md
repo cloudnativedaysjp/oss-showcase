@@ -72,7 +72,7 @@ Operator のように、CRD や ClusterRole が要る OSS は `cluster-apps/<名
 どちらに置いても、特権コンテナは使えません。必要なときは実行委員に相談してください。
 
 `resources` を書かなければ、コンテナごとに CPU 0.5 コアとメモリ 256Mi が上限になります。
-足りなければ `resources.limits` を書いてください。1 アプリの合計で、CPU 4 コアとメモリ 4Gi まで使えます。emptyDir とログは合わせて 2Gi までです。
+足りなければ `resources.limits` を書いてください。1 アプリの合計で、CPU 4 コアとメモリ 4Gi まで使えます。emptyDir とログは合わせて 5Gi までです。
 
 ## ライセンス
 
