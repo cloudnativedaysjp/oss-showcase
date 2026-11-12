@@ -75,6 +75,35 @@ metadata: {name: test-connection}
 kind: NetworkPolicy
 metadata: {name: allow-all}
 """,
+    "apps/more/app.yaml": """
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: nohost}
+spec: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: prio}
+spec: {template: {spec: {priorityClassName: system-node-critical, containers: []}}}
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata: {name: capi}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: esc}
+rules: [{apiGroups: [""], resources: [pods], verbs: [escalate]}]
+""",
+    "apps/more/sub/x.yaml": "kind: ConfigMap\nmetadata: {name: x}\n",
+    "cluster-apps/eps/app.yaml": """
+kind: EndpointSlice
+metadata: {name: x}
+---
+kind: ClusterRole
+metadata: {name: agg, labels: {rbac.authorization.k8s.io/aggregate-to-view: "true"}}
+rules: [{apiGroups: [""], resources: [secrets], verbs: [get]}]
+""",
     "apps/Bad_Name/app.yaml": "kind: ConfigMap\nmetadata: {name: x}\n",
 }
 
@@ -84,7 +113,7 @@ with tempfile.TemporaryDirectory() as d:
         (root / path).parent.mkdir(parents=True, exist_ok=True)
         (root / path).write_text(body)
     errors = "\n".join(check(root))
-    for want in ["hostnames", "Namespace", "名前が重なっている", "cluster-admin", "failurePolicy", "CRD が重なっている", "ディレクトリ名", "namespace は", "List は使えない", "API group", "admin には bind", "cilium.io", "externalIPs", "ExternalName は", "同じ名前", "roles と rolebindings だけ", "Pod は apps/", "NetworkPolicy は apps/"]:
+    for want in ["hostnames", "Namespace", "名前が重なっている", "cluster-admin", "failurePolicy", "CRD が重なっている", "ディレクトリ名", "namespace は", "List は使えない", "API group", "admin には bind", "cilium.io", "externalIPs", "ExternalName は", "同じ名前", "roles と rolebindings だけ", "hostnames に", "priorityClassName は", "Cluster は apps/", "escalate、bind", "サブディレクトリ", "EndpointSlice は", "aggregate できない", "Pod は apps/", "NetworkPolicy は使えない"]:
         assert want in errors, f"{want} が検出されない:\n{errors}"
 
 assert check(Path(__file__).parent.parent) == [], check(Path(__file__).parent.parent)
