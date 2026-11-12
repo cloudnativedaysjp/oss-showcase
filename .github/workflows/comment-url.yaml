@@ -1,0 +1,32 @@
+name: comment-url
+
+# fork からの PR にもコメントできるよう pull_request_target を使う。PR のコードは checkout しない
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  # private のあいだは、PR の差分を読むのに contents の権限が要る
+  contents: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      # 明示すると pipefail が付き、gh pr diff の失敗で止まる
+      - shell: bash
+        run: |
+          names=$(gh pr diff "$PR" --name-only | sed -nE 's#^(cluster-)?apps/([^/]+)/.*#\2#p' | sort -u)
+          [ -n "$names" ] || exit 0
+          {
+            echo "マージしました。1 分ほどで次の URL に表示されます。"
+            echo
+            for n in $names; do echo "- http://$n.showcase.cloudnativedays.jp"; done
+          } > body.md
+          gh pr comment "$PR" --body-file body.md

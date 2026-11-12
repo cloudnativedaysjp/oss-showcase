@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uptime-kuma
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uptime-kuma
+spec:
+  replicas: 1
+  # SQLite を 1 つの PVC に置くので、新旧の Pod を同時に動かさない
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: uptime-kuma
+  template:
+    metadata:
+      labels:
+        app: uptime-kuma
+    spec:
+      containers:
+        - name: uptime-kuma
+          image: louislam/uptime-kuma:2.5.9
+          ports:
+            - containerPort: 3001
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          resources:
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: uptime-kuma
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: uptime-kuma
+spec:
+  selector:
+    app: uptime-kuma
+  ports:
+    - port: 80
+      targetPort: 3001
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: uptime-kuma
+spec:
+  parentRefs:
+    - name: showcase
+      namespace: gateway
+  hostnames:
+    - uptime-kuma.showcase.cloudnativedays.jp
+  rules:
+    - backendRefs:
+        - name: uptime-kuma
+          port: 80

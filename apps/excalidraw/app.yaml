@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: excalidraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: excalidraw
+  template:
+    metadata:
+      labels:
+        app: excalidraw
+    spec:
+      containers:
+        - name: excalidraw
+          # バージョンのタグがないので、latest を digest で固定する
+          image: excalidraw/excalidraw@sha256:f7ee194addd607bf831d2af0f0a34463dd4225e426cf35199ef0b12a803398e9
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: excalidraw
+spec:
+  selector:
+    app: excalidraw
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: excalidraw
+spec:
+  parentRefs:
+    - name: showcase
+      namespace: gateway
+  hostnames:
+    - excalidraw.showcase.cloudnativedays.jp
+  rules:
+    - backendRefs:
+        - name: excalidraw
+          port: 80
