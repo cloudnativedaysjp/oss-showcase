@@ -5,32 +5,22 @@ main にマージされた YAML を Argo CD が同期する。
 
 ## 来場者の OSS を足すとき
 
-1. `apps/example/` をコピーして `apps/<名前>/` を作る。`<名前>` は英小文字、数字、ハイフンにする
-2. `image` と `containerPort`、Service の `targetPort` をその OSS に合わせる
-3. HTTPRoute の `hostnames` を `<名前>.showcase.cloudnativedays.jp` だけにする
-4. 「確かめる」のコマンドがすべて通ったら完了
+README.md の「デプロイのしかた」の手順に従う。
+「使えるリソース」「制限」「リソースの上限」に書かれたことは、すべて守る。
+OSS を選ぶときも、この 3 つの節で動くかを確かめる。例えば、外への通信は DNS、80 番、443 番だけ。
 
-PR が変えるのは `apps/<名前>/` の中だけにする。
-Helm チャートや Kustomize は Argo CD に描画させない。`helm template` や `kustomize build` の結果を YAML でコミットする。
-`helm template` には `--namespace app-<名前> --skip-tests` を付ける。使えない種類のリソースは、チャートの values で止める。
-CRD や ClusterRole が要る OSS は、`apps/` の代わりに `cluster-apps/<名前>/` に置く。
-
-作れるリソースの種類は README.md の「使えるリソース」にある。
-Namespace、ResourceQuota、LimitRange は運営が入れるので、来場者の YAML には書かない。
-公開には HTTPRoute を使う。Ingress、LoadBalancer、NodePort は使えない。
-
-### リソースと権限の上限
-
-- 1 アプリの合計で、CPU 4 コア、メモリ 4Gi、Pod 10 個、PVC 2 個、emptyDir とログ 5Gi まで
-- コンテナは root で動いてよいが、特権コンテナと hostPath は使わない
-- イメージは認証なしで pull できるものにする
-- Secret もリポジトリで公開される。本物の認証情報やトークンは書かず、ダミーの値にする
+- fork したリポジトリで作業し、元のリポジトリに PR を出す
+- PR が変えるのは、`apps/<名前>/` か `cluster-apps/<名前>/` のどちらか一方の中だけにする
+- YAML はそのディレクトリの直下に置く。Argo CD はサブディレクトリを読まない
+- Helm チャートや Kustomize は Argo CD に描画させない。README の「Helm チャートしかないとき」に従い、展開した YAML をコミットする
+- Helm で展開したときも、HTTPRoute は `apps/example/` からコピーして書く。`backendRefs` はチャートが作った Service を指す
+- Secret は公開される。本物の認証情報やトークンは書かず、ダミーの値にする。管理者のパスワードを Secret に置く OSS は、ログインを止める
 
 ## 確かめる
 
 ```bash
-pip install pyyaml
-python scripts/check.py        # 展示のルール。CI と同じ
+python3 -m pip install pyyaml   # 入っていなければ
+python3 scripts/check.py        # 展示のルール。CI と同じ。通ると ok と出る
 ```
 
 CI では kubeconform も走る。手元にあれば `kubeconform -summary -ignore-missing-schemas apps cluster-apps` で同じものを確かめられる。
