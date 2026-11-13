@@ -62,16 +62,77 @@ data:
 
 
     def page(names: list[str]) -> str:
-        items = "".join(f'<li><a href="https://{html.escape(h)}/">{html.escape(h.split(".")[0])}</a></li>' for h in names)
-        return f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1"><title>OSS Showcase</title>
-    <style>body{{font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.6}}
-    ul{{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:.75rem}}
-    a{{display:block;padding:.75rem 1rem;border:1px solid #ccc;border-radius:.5rem;text-decoration:none;color:inherit}}
-    a:hover{{border-color:#326ce5}}</style></head><body>
-    <h1>OSS Showcase</h1><p>CloudNative Days のわいわい広場の Kubernetes で動いているアプリです。
-    <a style="display:inline;padding:0;border:0;color:#326ce5" href="https://github.com/cloudnativedaysjp/oss-showcase">あなたのアプリも PR で載せられます</a>。</p>
-    <ul>{items}</ul></body></html>"""
+        cards = "".join(
+            f'<li><a href="https://{html.escape(h)}/"><article class="card">'
+            f'<h2>{html.escape(h.split(".")[0])}</h2><p>{".<wbr>".join(html.escape(x) for x in h.split("."))}</p></article></a></li>'
+            for h in names)
+        return f"""<!doctype html>
+    <html lang="ja">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta http-equiv="refresh" content="60">
+    <title>OSS Showcase</title>
+    <style>
+    :root {{
+      --bg-light: oklch(98% 0.01 260); --bg-dark: oklch(20% 0.03 260);
+      --fg-light: oklch(25% 0.03 260); --fg-dark: oklch(94% 0.01 260);
+      --card-light: white; --card-dark: oklch(27% 0.04 260);
+      --line-light: oklch(85% 0.02 260); --line-dark: oklch(38% 0.04 260);
+      --accent-light: oklch(50% 0.18 262); --accent-dark: oklch(78% 0.13 240);
+      --muted-light: oklch(45% 0.02 260); --muted-dark: oklch(75% 0.02 260);
+      --bg: var(--bg-light); --fg: var(--fg-light); --card: var(--card-light);
+      --line: var(--line-light); --accent: var(--accent-light); --muted: var(--muted-light);
+      @media (prefers-color-scheme: dark) {{
+        --bg: var(--bg-dark); --fg: var(--fg-dark); --card: var(--card-dark);
+        --line: var(--line-dark); --accent: var(--accent-dark); --muted: var(--muted-dark);
+      }}
+      @supports (color: light-dark(white, black)) {{
+        --bg: light-dark(var(--bg-light), var(--bg-dark));
+        --fg: light-dark(var(--fg-light), var(--fg-dark));
+        --card: light-dark(var(--card-light), var(--card-dark));
+        --line: light-dark(var(--line-light), var(--line-dark));
+        --accent: light-dark(var(--accent-light), var(--accent-dark));
+        --muted: light-dark(var(--muted-light), var(--muted-dark));
+      }}
+      color-scheme: light dark;
+    }}
+    body {{
+      margin: 0 auto; padding: 2rem 1.5rem 4rem; max-inline-size: 80rem;
+      background: var(--bg); color: var(--fg);
+      font-family: system-ui, sans-serif; line-height: 1.5;
+    }}
+    h1 {{ font-size: clamp(2rem, 1rem + 4vw, 4.5rem); line-height: 1.1; margin-block: 0 .5rem; text-wrap: balance; }}
+    header p {{ font-size: clamp(1rem, .8rem + 1vw, 1.5rem); color: var(--muted); max-inline-size: 60ch; margin: 0; text-wrap: pretty; }}
+    header a {{ color: var(--accent); }}
+    .count {{ font-size: clamp(1rem, .8rem + 1vw, 1.5rem); margin-block: 2rem 1rem; }}
+    ul {{ list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }}
+    li > a {{ display: block; block-size: 100%; color: inherit; text-decoration: none; border-radius: .75rem; }}
+    li > a:focus-visible {{ outline: none; }}
+    .card {{ block-size: 100%; box-sizing: border-box; padding: 1.25rem 1.5rem; background: var(--card);
+      border: 2px solid var(--line); border-radius: .75rem; transition: border-color .15s, translate .15s; }}
+    .card h2 {{ font-size: clamp(1.25rem, 1rem + 1vw, 2rem); margin: 0; overflow-wrap: anywhere; }}
+    /* ドメインは . の後ろでだけ折り返す */
+    .card p {{ margin: .25rem 0 0; color: var(--muted); font-size: .9rem; }}
+    li > a:hover .card {{ border-color: var(--accent); translate: 0 -2px; }}
+    li > a:focus-visible .card {{ border-color: var(--accent); outline: 3px solid var(--accent); outline-offset: 3px; }}
+    @media (prefers-reduced-motion: reduce) {{ .card {{ transition: none; }} li > a:hover .card {{ translate: none; }} }}
+    </style>
+    </head>
+    <body>
+    <header>
+    <h1>OSS Showcase</h1>
+    <p>CloudNative Days のわいわい広場の Kubernetes で動いているアプリです。
+    <a href="https://github.com/cloudnativedaysjp/oss-showcase">あなたのアプリも PR で載せられます</a>。</p>
+    </header>
+    <main>
+    <p class="count">いま {len(names)} 個のアプリが動いています</p>
+    <ul>{cards}</ul>
+    </main>
+    </body>
+    </html>"""
 
 
     class Handler(BaseHTTPRequestHandler):
