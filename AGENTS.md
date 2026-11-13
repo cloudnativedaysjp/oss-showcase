@@ -5,14 +5,14 @@ main にマージされた YAML を Argo CD が同期する。
 
 ## 来場者の OSS を足すとき
 
-README.md の「デプロイのしかた」の手順に従う。
-「使えるリソース」「制限」「リソースの上限」に書かれたことは、すべて守る。
-OSS を選ぶときも、この 3 つの節で動くかを確かめる。例えば、外への通信は DNS、80 番、443 番だけ。
+README.md の「やってみる」の手順に従う。
+docs/rules.md に書かれたことは、すべて守る。
+OSS を選ぶときも、docs/rules.md の制限で動くかを確かめる。例えば、外への通信は DNS、80 番、443 番だけ。
 
 - fork したリポジトリで作業し、元のリポジトリに PR を出す
 - PR が変えるのは、`apps/<名前>/` か `cluster-apps/<名前>/` のどちらか一方の中だけにする
 - YAML はそのディレクトリの直下に置く。Argo CD はサブディレクトリを読まない
-- Helm チャートや Kustomize は Argo CD に描画させない。README の「Helm チャートしかないとき」に従い、展開した YAML をコミットする
+- Helm チャートや Kustomize は Argo CD に描画させない。docs/rules.md の「Helm チャートしかないとき」に従い、展開した YAML をコミットする
 - Helm で展開したときも、HTTPRoute は `apps/example/` からコピーして書く。`backendRefs` はチャートが作った Service を指す
 - Secret は公開される。本物の認証情報やトークンは書かず、ダミーの値にする。管理者のパスワードを Secret に置く OSS は、ログインを止める
 
