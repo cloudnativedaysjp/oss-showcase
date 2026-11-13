@@ -104,6 +104,7 @@ kind: ClusterRole
 metadata: {name: agg, labels: {rbac.authorization.k8s.io/aggregate-to-view: "true"}}
 rules: [{apiGroups: [""], resources: [secrets], verbs: [get]}]
 """,
+    "apps/ing/app.yaml": "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata: {name: x}\n",
     "apps/Bad_Name/app.yaml": "kind: ConfigMap\nmetadata: {name: x}\n",
 }
 
@@ -113,7 +114,7 @@ with tempfile.TemporaryDirectory() as d:
         (root / path).parent.mkdir(parents=True, exist_ok=True)
         (root / path).write_text(body)
     errors = "\n".join(check(root))
-    for want in ["hostnames", "Namespace", "名前が重なっている", "cluster-admin", "failurePolicy", "CRD が重なっている", "ディレクトリ名", "namespace は", "List は使えない", "API group", "admin には bind", "cilium.io", "externalIPs", "ExternalName は", "同じ名前", "roles と rolebindings だけ", "hostnames に", "priorityClassName は", "Cluster は apps/", "escalate、bind", "サブディレクトリ", "EndpointSlice は", "aggregate できない", "Pod は apps/", "NetworkPolicy は使えない"]:
+    for want in ["hostnames", "Namespace", "と同じ名前です", "cluster-admin", "failurePolicy", "がすでに入れています", "ディレクトリ名", "消すか、app-", "中のリソースを 1 つずつ", "API group", "admin は権限が広すぎる", "cilium.io", "externalIPs", "ExternalName は使えません", "組み込みの ClusterRole と同じ名前", "roles と rolebindings だけ", "hostnames に more", "priorityClassName は使えません", "Cluster は apps/", "escalate、bind", "サブディレクトリ", "EndpointSlice は Kubernetes", "aggregate できません", "Pod は apps/", "NetworkPolicy は使えません", "HTTPRoute を使ってください"]:
         assert want in errors, f"{want} が検出されない:\n{errors}"
 
 assert check(Path(__file__).parent.parent) == [], check(Path(__file__).parent.parent)
