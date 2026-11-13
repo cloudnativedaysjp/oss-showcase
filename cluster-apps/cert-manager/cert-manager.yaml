@@ -16219,6 +16219,8 @@ spec:
         resources:
           limits:
             memory: 512Mi
+          requests:
+            memory: 128Mi
       nodeSelector:
         kubernetes.io/os: linux
 ---
@@ -16300,6 +16302,8 @@ spec:
         resources:
           limits:
             memory: 512Mi
+          requests:
+            memory: 128Mi
       nodeSelector:
         kubernetes.io/os: linux
 ---
@@ -16396,6 +16400,8 @@ spec:
         resources:
           limits:
             memory: 512Mi
+          requests:
+            memory: 128Mi
       nodeSelector:
         kubernetes.io/os: linux
 ---
