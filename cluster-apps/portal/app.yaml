@@ -42,6 +42,7 @@ data:
     import ssl
     import time
     import urllib.request
+    import zlib
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
     SA = "/var/run/secrets/kubernetes.io/serviceaccount"
@@ -61,76 +62,126 @@ data:
         return cache["hosts"]
 
 
+    # CloudNative Days のロゴの 2 色。アプリ名から決め、同じアプリはいつも同じ色にする
+    TILE_COLORS = ("blue", "magenta")
+
+    LOGO = """<svg class="logo" viewBox="0 0 97.46 102.05" aria-hidden="true">
+    <g class="m"><polygon points="30.8 17.67 39.43 32.6 58.15 32.6 66.77 17.67"/><polygon points="66.99 84.84 58.2 69.62 39.48 69.62 30.69 84.84"/><polygon points="37.62 68.4 28.26 52.19 10.57 52.19 28.78 83.72"/><polygon points="28.86 18.65 10.74 50.04 28.26 50.04 37.62 33.82"/></g>
+    <g class="b"><polygon points="66.77 15.24 57.97 0 39.25 0 30.44 15.24"/><polygon points="97.27 33.65 87.9 17.43 70.59 17.43 88.6 48.64"/><polygon points="59.82 33.65 69.19 49.86 86.71 49.86 68.59 18.47"/><polygon points="68.86 83.71 87.05 52.19 69.38 52.19 60.02 68.4"/><polygon points="88.87 53.53 70.93 84.62 88.1 84.62 97.46 68.4"/><polygon points="30.84 87.09 39.48 102.05 58.2 102.05 66.84 87.09"/><polygon points=".18 68.4 9.54 84.62 26.7 84.62 8.76 53.55"/><polygon points="8.66 48.64 26.68 17.43 9.36 17.43 0 33.65"/></g>
+    </svg>"""
+
+    CSS = """
+    :root {
+      --navy: #0b2238; --navy-2: #12304d; --blue: #216a9c; --magenta: #be4493;
+      --sky: #4cc0ef; --gold: #deb010; --paper: #eef4f9; --muted: #9db4c8;
+      --s: clamp(7.5rem, 5rem + 6vw, 12rem); --m: .3rem;
+      color-scheme: dark;
+    }
+    body {
+      margin: 0; min-block-size: 100dvh; background: var(--navy); color: var(--paper);
+      font-family: "Public Sans", system-ui, sans-serif; line-height: 1.5;
+    }
+    .wrap { max-inline-size: 110rem; margin-inline: auto; padding: clamp(1.5rem, 1rem + 2vw, 3.5rem); }
+    header { display: grid; grid-template-columns: auto 1fr; gap: clamp(1rem, .5rem + 2vw, 2.5rem); align-items: center; }
+    @media (width < 40rem) { header { grid-template-columns: 1fr; } }
+    .logo { inline-size: clamp(5rem, 3rem + 7vw, 11rem); block-size: auto; }
+    .logo .b { fill: var(--blue); } .logo .m { fill: var(--magenta); }
+    h1 { font-family: Rubik, system-ui, sans-serif; font-weight: 600; margin: 0;
+      font-size: clamp(1.75rem, 1rem + 3.2vw, 4.25rem); line-height: 1.1; text-wrap: balance; }
+    h1 strong { color: var(--gold); font-weight: 700; }
+    .lead { margin: .5rem 0 0; color: var(--muted); font-size: clamp(1rem, .85rem + .7vw, 1.6rem); max-inline-size: 48ch; text-wrap: pretty; }
+    .lead b, footer b { color: var(--paper); font-weight: 600; overflow-wrap: anywhere; }
+
+    /* ハニカム。左に置いた浮動要素の shape-outside で、行ごとに半分ずらす */
+    /* 浮動要素の高さを % で決めるため、親を flex にする */
+    /* 段を詰める負の余白の分だけ、最後の段がはみ出すので下に足す */
+    .hive { display: flex; margin-block-start: clamp(2rem, 1rem + 3vw, 4rem); padding-block-end: var(--s); --f: calc(1.732 * var(--s) + 4 * var(--m) - 1px); }
+    .hive ul { flex: 1; list-style: none; margin: 0; padding: 0; font-size: 0; }
+    .hive ul::before { content: ""; float: left; inline-size: calc(var(--s) / 2 + var(--m)); block-size: 120%;
+      shape-outside: repeating-linear-gradient(#0000 0 calc(var(--f) - 3px), #000 0 var(--f)); }
+    .hive li { display: inline-block; inline-size: var(--s); block-size: calc(var(--s) * 1.1547);
+      margin: var(--m); margin-block-end: calc(var(--m) - var(--s) * .2885); font-size: 1rem; vertical-align: top; }
+    .hive a { position: relative; isolation: isolate; display: grid; place-content: center; text-align: center;
+      inline-size: 100%; block-size: 100%; padding: 0 12%; box-sizing: border-box;
+      color: white; text-decoration: none; }
+    .hive a::before, .hive a::after { content: ""; position: absolute; inset: 0; z-index: -1;
+      clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+    .hive a::before { background: var(--tile); transition: background-color .2s; }
+    .hive .blue { --tile: var(--blue); } .hive .magenta { --tile: var(--magenta); }
+    .hive a:hover::before { background: color-mix(in oklab, var(--tile), white 18%); }
+    /* clip-path は自分のフォーカスの枠も切るので、ひと回り大きい六角形を後ろに描く */
+    .hive a:focus-visible { outline: none; }
+    .hive a:focus-visible::after { inset: -.35rem; z-index: -2; background: var(--gold); }
+    .name { font-family: Rubik, system-ui, sans-serif; font-weight: 600; line-height: 1.15;
+      font-size: clamp(.95rem, .7rem + .8vw, 1.6rem); overflow-wrap: anywhere; }
+
+    .empty { margin-block-start: 3rem; font-size: 1.5rem; color: var(--muted); }
+    footer { margin-block-start: clamp(3rem, 2rem + 4vw, 6rem); color: var(--muted); font-size: clamp(.9rem, .8rem + .4vw, 1.25rem); }
+
+    /* ページを開いたときに 1 回だけ、ロゴとタイルが組み上がる */
+    @media (prefers-reduced-motion: no-preference) {
+      .logo polygon { animation: drop .7s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 45ms); }
+      .hive li { animation: rise .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(400ms + var(--i) * 60ms); }
+    }
+    @keyframes drop { from { opacity: 0; translate: 0 -30%; } }
+    @keyframes rise { from { opacity: 0; scale: .6; } }
+    """
+
+    # 一覧だけを差し替える。ページごと読み直すと、毎回アニメーションが流れるため
+    SCRIPT = """
+    setInterval(async () => {
+      try {
+        const res = await fetch(location.href, { cache: "no-store" });
+        if (!res.ok) return;
+        const next = new DOMParser().parseFromString(await res.text(), "text/html");
+        for (const id of ["count", "hive"]) {
+          const cur = document.getElementById(id), fresh = next.getElementById(id);
+          if (cur && fresh && cur.innerHTML !== fresh.innerHTML) {
+            fresh.querySelectorAll("li").forEach((li) => (li.style.animation = "none"));
+            cur.replaceWith(fresh);
+          }
+        }
+      } catch {}
+    }, 60000);
+    """
+
+
     def page(names: list[str]) -> str:
-        cards = "".join(
-            f'<li><a href="https://{html.escape(h)}/"><article class="card">'
-            f'<h2>{html.escape(h.split(".")[0])}</h2><p>{".<wbr>".join(html.escape(x) for x in h.split("."))}</p></article></a></li>'
-            for h in names)
+        logo = LOGO
+        for i in range(12):
+            logo = logo.replace("<polygon ", f'<polygon style="--i:{i}" data-x ', 1)
+        logo = logo.replace(" data-x ", " ")
+        tiles = "".join(
+            f'<li style="--i:{i}"><a class="{TILE_COLORS[zlib.crc32(h.encode()) % 2]}" href="https://{html.escape(h)}/">'
+            f'<span class="name">{html.escape(h.split(".")[0])}</span></a></li>'
+            for i, h in enumerate(names))
+        hive = (f'<section class="hive" id="hive" aria-label="動いているアプリ"><ul>{tiles}</ul></section>' if names else
+                '<p class="empty" id="hive">まだアプリはありません。最初の 1 つを PR で載せてみませんか。</p>')
         return f"""<!doctype html>
     <html lang="ja">
     <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark">
-    <meta http-equiv="refresh" content="60">
-    <title>OSS Showcase</title>
-    <style>
-    :root {{
-      --bg-light: oklch(98% 0.01 260); --bg-dark: oklch(20% 0.03 260);
-      --fg-light: oklch(25% 0.03 260); --fg-dark: oklch(94% 0.01 260);
-      --card-light: white; --card-dark: oklch(27% 0.04 260);
-      --line-light: oklch(85% 0.02 260); --line-dark: oklch(38% 0.04 260);
-      --accent-light: oklch(50% 0.18 262); --accent-dark: oklch(78% 0.13 240);
-      --muted-light: oklch(45% 0.02 260); --muted-dark: oklch(75% 0.02 260);
-      --bg: var(--bg-light); --fg: var(--fg-light); --card: var(--card-light);
-      --line: var(--line-light); --accent: var(--accent-light); --muted: var(--muted-light);
-      @media (prefers-color-scheme: dark) {{
-        --bg: var(--bg-dark); --fg: var(--fg-dark); --card: var(--card-dark);
-        --line: var(--line-dark); --accent: var(--accent-dark); --muted: var(--muted-dark);
-      }}
-      @supports (color: light-dark(white, black)) {{
-        --bg: light-dark(var(--bg-light), var(--bg-dark));
-        --fg: light-dark(var(--fg-light), var(--fg-dark));
-        --card: light-dark(var(--card-light), var(--card-dark));
-        --line: light-dark(var(--line-light), var(--line-dark));
-        --accent: light-dark(var(--accent-light), var(--accent-dark));
-        --muted: light-dark(var(--muted-light), var(--muted-dark));
-      }}
-      color-scheme: light dark;
-    }}
-    body {{
-      margin: 0 auto; padding: 2rem 1.5rem 4rem; max-inline-size: 80rem;
-      background: var(--bg); color: var(--fg);
-      font-family: system-ui, sans-serif; line-height: 1.5;
-    }}
-    h1 {{ font-size: clamp(2rem, 1rem + 4vw, 4.5rem); line-height: 1.1; margin-block: 0 .5rem; text-wrap: balance; }}
-    header p {{ font-size: clamp(1rem, .8rem + 1vw, 1.5rem); color: var(--muted); max-inline-size: 60ch; margin: 0; text-wrap: pretty; }}
-    header a {{ color: var(--accent); }}
-    .count {{ font-size: clamp(1rem, .8rem + 1vw, 1.5rem); margin-block: 2rem 1rem; }}
-    ul {{ list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }}
-    li > a {{ display: block; block-size: 100%; color: inherit; text-decoration: none; border-radius: .75rem; }}
-    li > a:focus-visible {{ outline: none; }}
-    .card {{ block-size: 100%; box-sizing: border-box; padding: 1.25rem 1.5rem; background: var(--card);
-      border: 2px solid var(--line); border-radius: .75rem; transition: border-color .15s, translate .15s; }}
-    .card h2 {{ font-size: clamp(1.25rem, 1rem + 1vw, 2rem); margin: 0; overflow-wrap: anywhere; }}
-    /* ドメインは . の後ろでだけ折り返す */
-    .card p {{ margin: .25rem 0 0; color: var(--muted); font-size: .9rem; }}
-    li > a:hover .card {{ border-color: var(--accent); translate: 0 -2px; }}
-    li > a:focus-visible .card {{ border-color: var(--accent); outline: 3px solid var(--accent); outline-offset: 3px; }}
-    @media (prefers-reduced-motion: reduce) {{ .card {{ transition: none; }} li > a:hover .card {{ translate: none; }} }}
-    </style>
+    <meta name="color-scheme" content="dark">
+    <title>OSS Showcase | CloudNative Days</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&family=Rubik:wght@600;700&display=swap">
+    <style>{CSS}</style>
     </head>
     <body>
+    <div class="wrap">
     <header>
-    <h1>OSS Showcase</h1>
-    <p>CloudNative Days のわいわい広場の Kubernetes で動いているアプリです。
-    <a href="https://github.com/cloudnativedaysjp/oss-showcase">あなたのアプリも PR で載せられます</a>。</p>
+    {logo}
+    <div>
+    <h1 id="count">いま <strong>{len(names)}</strong> 個のアプリが、わいわい広場の Kubernetes で動いています</h1>
+    <p class="lead">来場者が PR で載せた OSS と、AI と作った自作のアプリです。タイルを押すか、<b>&lt;名前&gt;.showcase.cloudnativedays.jp</b> を開いてください。</p>
+    </div>
     </header>
-    <main>
-    <p class="count">いま {len(names)} 個のアプリが動いています</p>
-    <ul>{cards}</ul>
-    </main>
+    <main>{hive}</main>
+    <footer>あなたのアプリも、<b>github.com/cloudnativedaysjp/oss-showcase</b> に PR を出せば、ここに並びます。</footer>
+    </div>
+    <script>{SCRIPT}</script>
     </body>
     </html>"""
 
