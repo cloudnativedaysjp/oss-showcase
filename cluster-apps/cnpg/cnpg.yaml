@@ -4,6 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: backups.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -485,6 +486,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: clusterimagecatalogs.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -722,6 +724,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: clusters.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -9420,6 +9423,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: databaseroles.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -9771,6 +9775,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: databases.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -10396,6 +10401,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: failoverquorums.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -10480,6 +10486,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: imagecatalogs.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -10717,6 +10724,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: poolers.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -21751,6 +21759,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: publications.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -21952,6 +21961,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: scheduledbackups.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
@@ -22170,6 +22180,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.22.0
+    argocd.argoproj.io/sync-options: Delete=false
   name: subscriptions.postgresql.cnpg.io
 spec:
   group: postgresql.cnpg.io
