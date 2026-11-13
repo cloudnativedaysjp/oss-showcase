@@ -18,6 +18,9 @@ def render(text: str) -> list[dict]:
             continue
         for hook in doc.get("webhooks") or []:
             hook["failurePolicy"] = "Ignore"
+        # Application を消しても CRD は残す。消すと来場者の PostgreSQL も一緒に消える
+        if doc["kind"] == "CustomResourceDefinition":
+            doc["metadata"].setdefault("annotations", {})["argocd.argoproj.io/sync-options"] = "Delete=false"
         docs.append(doc)
     return docs
 
