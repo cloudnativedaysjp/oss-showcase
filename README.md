@@ -7,11 +7,17 @@ CloudNative Days のブースで動いている Kubernetes に、あなたの OS
 
 ## しくみ
 
-```
-あなたの PR ──▶ CI がルールを確かめる ──▶ スタッフがマージ
-                                              │
-                                              ▼
-   ブラウザ ◀── Gateway ◀── クラスタ ◀── Argo CD が同期
+```mermaid
+flowchart LR
+  you["あなた"] -- "Pull Request" --> repo["oss-showcase"]
+  ci["CI<br>check.py"] -. "ルールを確かめる" .-> repo
+  staff["スタッフ"] -- "レビューしてマージ" --> repo
+  repo -- "main を同期" --> argo["Argo CD"]
+  subgraph cluster["ブースの Kubernetes"]
+    argo --> ns["app-あなたの OSS"]
+    gw["Gateway"] --> ns
+  end
+  browser["ブラウザ"] -- "http://あなたの OSS.showcase.cloudnativedays.jp" --> gw
 ```
 
 main にマージされた YAML を、Argo CD がクラスタに同期します。
