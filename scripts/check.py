@@ -84,7 +84,7 @@ def check(root: Path) -> list[str]:
                     elif kind in ENDPOINT_KINDS:
                         errors.append(f"{where}: {kind} は Kubernetes のコントローラだけが作れる")
                     elif tier == "apps" and (str(doc.get("apiVersion", "")).rpartition("/")[0], kind) not in APP_KINDS:
-                        errors.append(f"{where}: {kind} は apps/ では使えない。使える種類は README.md にある")
+                        errors.append(f"{where}: {kind} は apps/ では使えない。使える種類は docs/rules.md にある")
                     if kind == "HTTPRoute":
                         if not spec.get("hostnames"):
                             errors.append(f"{where}: hostnames に {name}.{DOMAIN} を書く")
