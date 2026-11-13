@@ -17,13 +17,21 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pyyaml
+      - name: helm
+        run: |
+          curl -sSLo helm.tgz https://get.helm.sh/helm-v4.0.4-linux-amd64.tar.gz
+          echo "29454bc351f4433e66c00f5d37841627cbbcc02e4c70a6d796529d355237671c  helm.tgz" | sha256sum -c -
+          tar xzf helm.tgz --strip-components=1 linux-amd64/helm
+          sudo install helm /usr/local/bin/helm
+      # charts/ のチャートを描画し、中身も check.py と kubeconform にかける
+      - run: python scripts/render_charts.py
       - run: python scripts/test_check.py
       - run: python scripts/check.py
       - name: kubeconform
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
           # HTTPRoute と来場者の CRD はスキーマがないので飛ばす
-          ./kubeconform -summary -ignore-missing-schemas $(ls -d apps cluster-apps 2>/dev/null)
+          ./kubeconform -summary -ignore-missing-schemas $(ls -d apps cluster-apps .rendered 2>/dev/null)
 
   # リポジトリは公開されるので、本物のトークンや鍵が入った PR を止める
   secrets:

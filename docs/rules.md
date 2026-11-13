@@ -66,23 +66,35 @@ limits を超えてメモリを使うとコンテナが止まり、emptyDir と�
 | Pod | 10 個 |
 | PersistentVolumeClaim | 2 個、合計 2Gi |
 
-## Helm チャートしかないとき
+## Helm チャートを使うとき
 
-Helm チャートや Kustomize はそのままでは使えません。`.yaml` と `.yml` だけを読みます。
-手元で YAML に展開して、その結果をコミットしてください。
+`charts/<アプリの名前>/helm.yaml` に、使うチャートを書いてください。Argo CD がチャートを描画してデプロイします。
 
-```sh
-helm template <OSS の名前> <チャート> --namespace app-<OSS の名前> --skip-tests > apps/<OSS の名前>/app.yaml
+```yaml
+repoURL: https://stefanprodan.github.io/podinfo
+chart: podinfo
+version: 6.17.0
+values: |
+  replicaCount: 1
 ```
 
-- 展開に使ったコマンドと values は、`app.yaml` の先頭にコメントで残してください。バージョンを上げるときに使います
-- 出力に `namespace: app-<OSS の名前>` が入っていても構いません
-- HTTPRoute はチャートに入っていないので、`apps/example/` から別のファイルにコピーしてください。`backendRefs` には、チャートが作った Service の名前とポートを書きます
-- 「使えるリソース」にない種類が出てきたら、チャートの values で止めてください
+- `version` は `6.17.0` のように固定してください。範囲や `*` は使えません
+- `values` は `values: |` のように、文字列で書いてください
+- HTTPRoute はチャートに入っていないことが多いので、`helm.yaml` の隣に YAML で置いてください。`backendRefs` には、チャートが作る Service の名前とポートを書きます。[charts/podinfo/](../charts/podinfo/) が見本です
+- 「使えるリソース」にない種類や、運営が入れるものがチャートに入っていたら、values で止めてください
   - Ingress は使えません。代わりに HTTPRoute を書いてください
-  - NetworkPolicy と ServiceMonitor は使えません
-  - ClusterRole が出てきたら、namespace に閉じた Role にする values を探してください。Grafana なら `rbac.namespaced=true` です
+  - NetworkPolicy と CiliumNetworkPolicy は使えません
 - チャートの `resources` が、上の上限に収まっているかを確かめてください
+
+チャートの中身は PR の差分に出ません。信頼できるチャートかどうかは、実行委員がレビューで判断します。
+手元で確かめるときは、次のコマンドで描画した結果も `check.py` にかけられます。helm が要ります。
+
+```sh
+python3 scripts/render_charts.py
+python3 scripts/check.py
+```
+
+Kustomize は使えません。`kustomize build` の結果を `apps/` にコミットしてください。
 
 ## PostgreSQL が要るとき
 

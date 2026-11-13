@@ -1,0 +1,12 @@
+repoURL: https://stefanprodan.github.io/podinfo
+chart: podinfo
+version: 6.17.0
+values: |
+  replicaCount: 1
+  hpa:
+    enabled: true
+    maxReplicas: 4
+    cpu: 80
+  resources:
+    requests:
+      cpu: 50m
