@@ -1,0 +1,10 @@
+repoURL: https://cloudnative-pg.github.io/charts
+chart: cloudnative-pg
+version: 0.29.1
+# Operator が落ちても、ほかの人のデプロイまで止めない
+values: |
+  webhook:
+    mutating:
+      failurePolicy: Ignore
+    validating:
+      failurePolicy: Ignore
