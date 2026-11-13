@@ -21516,6 +21516,8 @@ spec:
         resources:
           limits:
             memory: 512Mi
+          requests:
+            memory: 128Mi
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -32094,6 +32096,8 @@ spec:
         resources:
           limits:
             memory: 512Mi
+          requests:
+            memory: 128Mi
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -43906,6 +43910,8 @@ spec:
         resources:
           limits:
             memory: 512Mi
+          requests:
+            memory: 128Mi
       securityContext:
         runAsNonRoot: true
         seccompProfile:

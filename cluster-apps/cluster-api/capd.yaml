@@ -5826,6 +5826,8 @@ spec:
         resources:
           limits:
             memory: 512Mi
+          requests:
+            memory: 128Mi
       serviceAccountName: capd-manager
       terminationGracePeriodSeconds: 10
       tolerations:

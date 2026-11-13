@@ -37,7 +37,10 @@ def common(doc: dict) -> dict:
             hook["failurePolicy"] = "Ignore"
     if doc["kind"] == "Deployment":
         for c in doc["spec"]["template"]["spec"]["containers"]:
-            c.setdefault("resources", {}).setdefault("limits", {"memory": "512Mi"})
+            res = c.setdefault("resources", {})
+            res.setdefault("limits", {"memory": "512Mi"})
+            # requests を書かないと limits と同じになり、合計が quota に張り付いてローリング更新できない
+            res.setdefault("requests", {"memory": "128Mi"})
     return doc
 
 
