@@ -1,9 +1,10 @@
 # OSS Showcase
 
-CloudNative Days のブースで動いている Kubernetes に、あなたの OSS をデプロイしてみませんか。
+CloudNative Days のわいわい広場で動いている Kubernetes に、あなたのアプリをデプロイしてみませんか。
 
-自分で作った OSS でも、好きな OSS でも構いません。
-このリポジトリに Pull Request を出してマージされると、1 分ほどで `http://<OSS の名前>.showcase.cloudnativedays.jp` に公開されます。
+推しの OSS でも、AI と一緒に作った自作のアプリでも構いません。
+認証なしで pull できるコンテナイメージがあれば載せられます。
+このリポジトリに Pull Request を出してマージされると、1 分ほどで `http://<アプリの名前>.showcase.cloudnativedays.jp` に公開されます。
 
 ## しくみ
 
@@ -13,24 +14,24 @@ flowchart LR
   ci["CI<br>check.py"] -. "ルールを確かめる" .-> repo
   staff["スタッフ"] -- "レビューしてマージ" --> repo
   repo -- "main を同期" --> argo["Argo CD"]
-  subgraph cluster["ブースの Kubernetes"]
-    argo --> ns["app-あなたの OSS"]
+  subgraph cluster["わいわい広場の Kubernetes"]
+    argo --> ns["app-あなたのアプリ"]
     gw["Gateway"] --> ns
   end
-  browser["ブラウザ"] -- "http://あなたの OSS.showcase.cloudnativedays.jp" --> gw
+  browser["ブラウザ"] -- "http://あなたのアプリ.showcase.cloudnativedays.jp" --> gw
 ```
 
 main にマージされた YAML を、Argo CD がクラスタに同期します。
-OSS ごとに専用の namespace が用意され、ほかの人の OSS とは通信も資源も分かれています。
+アプリごとに専用の namespace が用意され、ほかの人のアプリとは通信も資源も分かれています。
 
 ## やってみる
 
 1. このリポジトリを fork する
-2. `apps/example/` をコピーして、`apps/<OSS の名前>/` を作る
+2. `apps/example/` をコピーして、`apps/<アプリの名前>/` を作る
 3. `app.yaml` の 3 か所を書き換える
-   - `image`：その OSS のコンテナイメージ
-   - `containerPort` と Service の `targetPort`：その OSS が待ち受けるポート
-   - HTTPRoute の `hostnames`：`<OSS の名前>.showcase.cloudnativedays.jp`
+   - `image`：そのアプリのコンテナイメージ
+   - `containerPort` と Service の `targetPort`：そのアプリが待ち受けるポート
+   - HTTPRoute の `hostnames`：`<アプリの名前>.showcase.cloudnativedays.jp`
 4. `python3 scripts/check.py` を実行して、`ok` と出ることを確かめる
 5. Pull Request を出す。スタッフがレビューしてマージします
 

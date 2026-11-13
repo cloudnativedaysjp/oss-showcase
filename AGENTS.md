@@ -1,13 +1,13 @@
 # AGENTS.md
 
-CloudNative Days のブースで、来場者が推しの OSS を Kubernetes にデプロイする展示のリポジトリ。
+CloudNative Days のわいわい広場で、来場者が推しの OSS や AI で作った自作のアプリを Kubernetes にデプロイする展示のリポジトリ。
 main にマージされた YAML を Argo CD が同期する。
 
-## 来場者の OSS を足すとき
+## 来場者のアプリを足すとき
 
 README.md の「やってみる」の手順に従う。
 docs/rules.md に書かれたことは、すべて守る。
-OSS を選ぶときも、docs/rules.md の制限で動くかを確かめる。例えば、外への通信は DNS、80 番、443 番だけ。
+アプリを選ぶときも、docs/rules.md の制限で動くかを確かめる。例えば、外への通信は DNS、80 番、443 番だけ。
 
 - fork したリポジトリで作業し、元のリポジトリに PR を出す
 - PR が変えるのは、`apps/<名前>/` か `cluster-apps/<名前>/` のどちらか一方の中だけにする
