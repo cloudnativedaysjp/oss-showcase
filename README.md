@@ -37,7 +37,7 @@ main にマージされた YAML を、Argo CD がクラスタに同期します�
 
 ## こんなときは
 
-- **Helm チャートしかない**：`helm template` で YAML に展開してコミットしてください。手順は [ルール](docs/rules.md#helm-チャートしかないとき) にあります
+- **Helm チャートを使いたい**：`charts/<アプリの名前>/helm.yaml` にチャートを書けば、そのまま使えます。手順は [ルール](docs/rules.md#helm-チャートを使うとき) にあります
 - **データベースを使いたい**：CloudNativePG で PostgreSQL を作れます。[ルール](docs/rules.md#postgresql-が要るとき) に例があります
 - **Operator のように CRD が要る**：`cluster-apps/` に置きます。スタッフが中身を確認してからマージします
 - **Claude Code などのエージェントに任せたい**：[AGENTS.md](AGENTS.md) を読ませてください

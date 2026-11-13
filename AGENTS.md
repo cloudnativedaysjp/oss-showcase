@@ -10,10 +10,11 @@ docs/rules.md に書かれたことは、すべて守る。
 アプリを選ぶときも、docs/rules.md の制限で動くかを確かめる。例えば、外への通信は DNS、80 番、443 番だけ。
 
 - fork したリポジトリで作業し、元のリポジトリに PR を出す
-- PR が変えるのは、`apps/<名前>/` か `cluster-apps/<名前>/` のどちらか一方の中だけにする
+- PR が変えるのは、`apps/<名前>/`、`cluster-apps/<名前>/`、`charts/<名前>/` のどれか 1 つの中だけにする
 - YAML はそのディレクトリの直下に置く。Argo CD はサブディレクトリを読まない
-- Helm チャートや Kustomize は Argo CD に描画させない。docs/rules.md の「Helm チャートしかないとき」に従い、展開した YAML をコミットする
-- Helm で展開したときも、HTTPRoute は `apps/example/` からコピーして書く。`backendRefs` はチャートが作った Service を指す
+- Helm チャートは `charts/<名前>/helm.yaml` に書く。docs/rules.md の「Helm チャートを使うとき」に従う。`version` は固定する
+- Helm のときも、HTTPRoute は `helm.yaml` の隣に YAML で置く。`backendRefs` はチャートが作る Service を指す。描画した結果は `python3 scripts/render_charts.py` で確かめられる
+- Kustomize は Argo CD に描画させない。`kustomize build` の結果を `apps/<名前>/` にコミットする
 - Secret は使ってよいが、リポジトリごと公開されて誰でも読める。テスト用の値など、見られても困らない値だけを書く
 - クラスタはイベントの後に消え、会期中も作り直すことがある。データが残る前提の構成にしない
 - 管理者のパスワードも読めるので、そのままでは誰でもログインできる。ログインを止めるか、閲覧だけにする

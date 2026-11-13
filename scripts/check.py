@@ -7,7 +7,10 @@ from pathlib import Path
 import yaml
 
 DOMAIN = "showcase.cloudnativedays.jp"
-TIERS = ("apps", "cluster-apps")
+TIERS = ("apps", "cluster-apps", "charts")
+# scripts/render_charts.py が charts/ を描画して置く場所。CI では必ず描画してから確かめる
+RENDERED = ".rendered/charts"
+VERSION_RE = re.compile(r"^v?\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$")
 # namespace は app-<名前> になるので、DNS ラベルの 63 文字から prefix 分を引く
 NAME_RE = re.compile(r"^[a-z0-9]([-a-z0-9]{0,57}[a-z0-9])?$")
 # 運営が入れるもの。来場者が書くと乗っ取りや同期エラーになる
@@ -41,6 +44,26 @@ def keys(obj, key):
             yield from keys(v, key)
 
 
+def check_helm(root: Path, app: Path) -> list[str]:
+    """charts/<名前>/ には helm.yaml だけを置き、チャートのバージョンを固定する"""
+    base = app.relative_to(root)
+    errors = []
+    try:
+        spec = yaml.safe_load((app / "helm.yaml").read_text()) or {}
+    except FileNotFoundError:
+        return errors + [f"{base}: helm.yaml がありません"]
+    except yaml.YAMLError as e:
+        return errors + [f"{base}/helm.yaml: YAML として読めませんでした: {e}"]
+    for key in ("repoURL", "chart", "version"):
+        if not isinstance(spec.get(key), str) or not spec[key]:
+            errors.append(f"{base}/helm.yaml: {key} を書いてください")
+    if isinstance(spec.get("version"), str) and not VERSION_RE.match(spec["version"]):
+        errors.append(f"{base}/helm.yaml: version は 1.2.3 のように固定してください。範囲や * は使えません（{spec['version']}）")
+    if "values" in spec and not isinstance(spec["values"], str):
+        errors.append(f"{base}/helm.yaml: values は `values: |` のように文字列で書いてください")
+    return errors
+
+
 def check(root: Path) -> list[str]:
     errors = []
     owner = {}
@@ -56,9 +79,13 @@ def check(root: Path) -> list[str]:
                 errors.append(f"{tier}/{name}: {owner[name]}/{name} と同じ名前です。別の名前にしてください")
             owner.setdefault(name, tier)
 
-            for f in sorted(app.rglob("*.y*ml")):
+            files = sorted(app.rglob("*.y*ml"))
+            if tier == "charts":
+                errors += check_helm(root, app)
+                files = [f for f in files if f.name != "helm.yaml"] + sorted((root / RENDERED).glob(f"{name}.yaml"))
+            for f in files:
                 path = f.relative_to(root)
-                if f.parent != app:
+                if f.parent != app and RENDERED not in str(f):
                     errors.append(f"{path}: サブディレクトリの YAML はデプロイされません。{tier}/{name}/ の直下に移してください")
                     continue
                 try:
