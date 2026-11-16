@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-file-gateway
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: llm-file-gateway
+  template:
+    metadata:
+      labels:
+        app: llm-file-gateway
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: ghcr.io/mochizuki875/llm-file-gateway:cndw2026-demo-v0.4.1
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: GATEWAY_HOST
+              value: 0.0.0.0
+            - name: GATEWAY_PORT
+              value: "8080"
+            - name: GATEWAY_DEMO_MODE
+              value: "true"
+            - name: GATEWAY_AUTH_REQUIRED
+              value: "false"
+            - name: GATEWAY_DATA_DIR
+              value: /var/lib/file-gateway
+            - name: FILE_TTL_SECONDS
+              value: "60"
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+              ephemeral-storage: 256Mi
+            limits:
+              cpu: "4"
+              memory: 4Gi
+              ephemeral-storage: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/file-gateway
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-file-gateway
+spec:
+  selector:
+    app: llm-file-gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: llm-file-gateway
+spec:
+  parentRefs:
+    - name: showcase
+      namespace: gateway
+  hostnames:
+    - llm-file-gateway.showcase.cloudnativedays.jp
+  rules:
+    - backendRefs:
+        - name: llm-file-gateway
+          port: 80
