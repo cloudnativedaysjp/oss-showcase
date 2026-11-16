@@ -529,6 +529,8 @@ data:
 
     /* ---- 舞台 */
     .show { position: relative; background: var(--card); border: .2rem solid var(--blue); border-radius: 1.6rem; padding: clamp(.9rem, 2vw, 1.8rem); overflow: hidden; }
+    /* hidden 属性は display の指定に負けるので、明示的に消す */
+    [hidden] { display: none !important; }
     .sim-note { display: table; margin: 0 auto .6rem; font-size: .84rem; line-height: 1.6; padding: .15em .9em; border: .12rem dashed var(--magenta); border-radius: .5rem; }
     .headline { text-align: center; font-size: clamp(1.35rem, .9rem + 1.9vw, 2.6rem); font-weight: 900; line-height: 1.35; color: var(--blue); min-height: 1.35em; }
     .headline.is-fresh { animation: rise .45s ease-out; }
@@ -616,7 +618,7 @@ data:
     /* リモートのマシン */
     .machine { background: var(--ink); border-radius: 1rem; padding: .6rem; }
     .screen { position: relative; min-height: 12.6rem; border-radius: .55rem; background: var(--night); color: var(--glow); font-family: var(--dots); line-height: 1.5; padding: .9rem 1rem; overflow: hidden; display: grid; align-content: center; }
-    .os { font-size: clamp(1.4rem, 1rem + 1.2vw, 2.1rem); line-height: 1.25; text-shadow: 0 0 .9rem rgba(255, 210, 122, .5); }
+    .os { font-size: clamp(1.3rem, .9rem + 1.1vw, 2rem); line-height: 1.25; text-shadow: 0 0 .9rem rgba(255, 210, 122, .5); }
     .specs { margin: .6rem 0 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0 .9rem; font-size: .88rem; }
     .specs div { display: contents; }
     .specs dt { color: var(--dim); }
@@ -642,7 +644,7 @@ data:
     .screen.is-console .console { display: block; }
     .console-note { display: none; padding: .45rem .4rem 0; color: #dfe5e8; font-size: .76rem; line-height: 1.5; }
     .machine.has-console .console-note { display: block; }
-    .console-toggle { font: inherit; font-size: .76rem; font-weight: 700; color: var(--glow); background: none; border: .1rem solid var(--dim); border-radius: 99px; padding: .05rem .7rem; margin-left: auto; cursor: pointer; display: none; }
+    .console-toggle { font: inherit; font-size: .76rem; font-weight: 700; color: var(--glow); background: none; border: .1rem solid var(--dim); border-radius: 99px; padding: .1rem .8rem; margin-left: auto; cursor: pointer; display: none; white-space: nowrap; }
     .machine.has-console .console-toggle { display: inline-block; }
     .stage[data-phase="staging"] .overlay-swap, .stage[data-phase="rebooting"] .overlay-swap { display: grid; }
     .stage[data-phase="offline"] .overlay-boot { display: grid; }
@@ -652,7 +654,8 @@ data:
     .stage[data-phase="arrived"] .os { animation: pop .9s cubic-bezier(.2, 1.6, .4, 1); }
     @keyframes flash { 0% { background: #fff; } 100% { background: var(--night); } }
     @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-    .machine-foot { display: flex; align-items: center; gap: .5rem; padding: .5rem .4rem .05rem; color: #dfe5e8; font-size: .8rem; line-height: 1.4; }
+    .machine-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; padding: .5rem .4rem .05rem; color: #dfe5e8; font-size: .8rem; line-height: 1.4; }
+    .machine-foot #machine-note { flex: 1 1 10em; }
     .power { flex: none; width: .7rem; height: .7rem; border-radius: 50%; background: #5d6a72; }
     .power.is-on { background: #7be07b; box-shadow: 0 0 .6rem #7be07b; }
     .power.is-busy { background: var(--orange); animation: blink .8s steps(2, jump-none) infinite; }
@@ -884,7 +887,7 @@ data:
               <div class="overlay overlay-log" id="boot-log" aria-hidden="true"></div>
               <img class="console" id="console" alt="リモートの VM のコンソール画面">
             </div>
-            <div class="machine-foot"><span class="power" id="power"></span><span id="machine-note">リモートから届いた値を、そのまま表示しています</span><button type="button" class="console-toggle" id="console-toggle">コンソール画面を見る</button></div>
+            <div class="machine-foot"><span class="power" id="power"></span><span id="machine-note">リモートから届いた値です</span><button type="button" class="console-toggle" id="console-toggle">コンソールを見る</button></div>
             <p class="console-note">コンソール画面は、VM を動かしている Mac が撮った本物の画面です。Skupper のリンクを通して中継しています。</p>
           </div>
         </div>
@@ -1281,8 +1284,8 @@ data:
       if (ph === 'rebooting' || ph === 'offline') view.consoleUntil = Date.now() + 12000;
       const show = live && (view.consolePinned || Date.now() < view.consoleUntil);
       $('screen').classList.toggle('is-console', show);
-      $('console-toggle').textContent = view.consolePinned ? '情報の表示に戻す' : 'コンソール画面を見る';
-      $('machine-note').textContent = show ? 'いまのコンソール画面です' : 'リモートから届いた値を、そのまま表示しています';
+      $('console-toggle').textContent = view.consolePinned ? '情報に戻す' : 'コンソールを見る';
+      $('machine-note').textContent = show ? 'いまのコンソール画面です' : 'リモートから届いた値です';
       if (live && show && st.console !== view.consoleEtag) {
         view.consoleEtag = st.console;
         $('console').src = `api/console.png?e=${encodeURIComponent(st.console)}`;
