@@ -512,7 +512,7 @@ data:
     html { font-size: clamp(15px, .52vw + 9.5px, 30px); -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--cream); color: var(--ink); font-family: var(--text); font-weight: 500; line-height: 1.85; }
-    .wrap { width: min(100% - 2 * clamp(1rem, 3.5vw, 3rem), 104rem); margin: 0 auto; }
+    .wrap { width: min(100% - 2 * clamp(1rem, 3.5vw, 3rem), 118rem); margin: 0 auto; }
     a { color: var(--blue); text-underline-offset: .2em; }
     a:focus-visible, button:focus-visible { outline: .2rem solid var(--blue); outline-offset: .2rem; }
     img { max-width: 100%; height: auto; }
