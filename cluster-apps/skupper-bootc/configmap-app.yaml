@@ -39,6 +39,9 @@ data:
     HUB_LABEL = os.environ.get("HUB_LABEL", "ROSA 上の Skupper")
     # リモートの VM のコンソール画面（PNG）を返す URL。これも Skupper の Listener の先にある。空なら使わない
     CONSOLE_URL = os.environ.get("CONSOLE_URL", "")
+    # 自分が外へ出るときのアドレスを答えてくれる URL。空なら調べない。
+    # ハブの側で「このアドレスからだけ繋いでよい」と絞るために、アドレスを知る必要がある
+    EGRESS_CHECK_URL = os.environ.get("EGRESS_CHECK_URL", "")
     POLL_SEC = float(os.environ.get("POLL_SEC", "1"))
 
     LOADING_SEC = 6      # 起動してからこの時間は「確認中」。過ぎても届かなければ「届かない」とする
@@ -106,6 +109,7 @@ data:
             self.console_frame = None           # VM のコンソール画面の最新の 1 枚（PNG）
             self.console_etag = ""
             self.console_at = 0.0               # 最後に中継と話せた時刻
+            self.egress_ip = None               # このアプリが外へ出るときのアドレス
 
         # ---- リモートへの問い合わせ
 
@@ -187,6 +191,18 @@ data:
                 # 切り替えの最中は細かく、何も起きていないときはゆっくり取りにいく
                 busy = self.phase in ("staging", "rebooting", "offline", "arrived")
                 time.sleep(max(0.2, (1.5 if busy else 5) - (time.time() - started)))
+
+        def find_egress_ip(self):
+            for _ in range(10):
+                try:
+                    with urllib.request.urlopen(EGRESS_CHECK_URL, timeout=5) as response:
+                        text = response.read(100).decode("ascii", "replace").strip()
+                    if re.fullmatch(r"[0-9a-fA-F.:]{3,45}", text):
+                        self.egress_ip = text
+                        return
+                except Exception:
+                    pass
+                time.sleep(30)
 
         def poll_forever(self):
             while True:
@@ -417,7 +433,7 @@ data:
                     # URL に目印を付けて取りにくるので、同じ URL の中身は変わらない。ブラウザに覚えさせてよい
                     return self._send(200, frame, "image/png", "public, max-age=600")
                 if path == "/healthz":
-                    return self._json(200, {"ok": True})
+                    return self._json(200, {"ok": True, "egress_ip": hub.egress_ip})
                 self._static(path)
 
             do_HEAD = do_GET
@@ -461,6 +477,8 @@ data:
         threading.Thread(target=hub.poll_forever, daemon=True).start()
         if CONSOLE_URL:
             threading.Thread(target=hub.console_forever, daemon=True).start()
+        if EGRESS_CHECK_URL:
+            threading.Thread(target=hub.find_egress_ip, daemon=True).start()
         address, _, port = LISTEN.rpartition(":")
         server = BoundedServer((address, int(port)), make_handler(hub))
         print(f"listening on {LISTEN}, remote API at {AGENT_URL}", file=sys.stderr)

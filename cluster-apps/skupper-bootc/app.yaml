@@ -33,6 +33,10 @@ spec:
             # 中継する側が繋がっていない間は取れないだけで、画面はコンソールなしで動く
             - name: CONSOLE_URL
               value: http://console-relay:8099/frame.png
+            # 起動時に 1 回、自分が外へ出るときのアドレスを調べて /healthz で答える。
+            # ハブの側で、AccessToken を使える接続元をこのクラスタだけに絞るために使う
+            - name: EGRESS_CHECK_URL
+              value: https://checkip.amazonaws.com
             - name: REMOTE_PLACE
               value: 佐倉の某宅
             - name: HUB_LABEL
