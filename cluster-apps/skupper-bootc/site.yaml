@@ -1,7 +1,6 @@
 # Skupper のサイトと、リモートへの入口。
 # サイトはリンクを受けない（linkAccess を書かない）。ROSA の上のハブへ、こちらから外向きにリンクを張る。
-# ハブに繋ぐための合言葉（AccessToken）は、ここには入れていない。このリポジトリは公開で、
-# 置いた合言葉は誰でも使えてしまうため。別の手段で渡す。渡すまでは、画面に「リモートに届きません」と出る
+# ハブに繋ぐための合言葉（AccessToken）は access-token.yaml にある。このスクリプトは作らない
 apiVersion: skupper.io/v2alpha1
 kind: Site
 metadata:
