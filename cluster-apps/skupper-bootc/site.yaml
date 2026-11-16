@@ -1,0 +1,28 @@
+# Skupper のサイトと、リモートへの入口。
+# サイトはリンクを受けない（linkAccess を書かない）。ROSA の上のハブへ、こちらから外向きにリンクを張る。
+# ハブに繋ぐための合言葉（AccessToken）は、ここには入れていない。このリポジトリは公開で、
+# 置いた合言葉は誰でも使えてしまうため。別の手段で渡す。渡すまでは、画面に「リモートに届きません」と出る
+apiVersion: skupper.io/v2alpha1
+kind: Site
+metadata:
+  name: showcase
+---
+# この名前とポートの Service ができる。その先は、リンクを伝ってリモートの Fedora の 127.0.0.1:8088 に届く
+apiVersion: skupper.io/v2alpha1
+kind: Listener
+metadata:
+  name: bootc-agent
+spec:
+  routingKey: bootc-agent
+  host: bootc-agent
+  port: 8088
+---
+# リモートの VM のコンソール画面を返す中継への入口。VM を動かしているマシンの上にある
+apiVersion: skupper.io/v2alpha1
+kind: Listener
+metadata:
+  name: console-relay
+spec:
+  routingKey: console-relay
+  host: console-relay
+  port: 8099

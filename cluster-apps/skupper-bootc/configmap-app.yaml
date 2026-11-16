@@ -1,0 +1,1474 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skupper-bootc-app
+data:
+  server.py: |
+    #!/usr/bin/env python3
+    """会場の Kubernetes にデプロイするデモアプリ。
+
+    画面を配り、リモートの Fedora の状態を見ている全員に同じ内容で届け、
+    切り替えの要求を 1 つずつリモートへ取り次ぐ。
+
+      GET  /api/state?c=<id>   全員に共通の状態。c は「いま見ている人数」を数えるための目印
+      POST /api/switch         {"target": "<id>", "c": "<id>"} をリモートの API へ取り次ぐ
+
+    リモートへの問い合わせは、見ている人数に関係なくこのアプリが 1 秒に 1 回だけ行う。
+    切り替えの進み具合（どの段階にいつ入ったか）もここで決めるので、
+    誰の画面でも同じタイミングで同じ表示になる。
+
+    標準ライブラリだけで動く。
+    """
+
+    import json
+    import os
+    import re
+    import sys
+    import threading
+    import time
+    import urllib.error
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from pathlib import Path
+
+    # Skupper の Listener が作る Service。この先にリモートの Fedora の API がある
+    AGENT_URL = os.environ.get("AGENT_URL", "http://bootc-agent:8088").rstrip("/")
+    LISTEN = os.environ.get("LISTEN", "0.0.0.0:8080")
+    STATIC_DIR = Path(os.environ.get("STATIC_DIR") or Path(__file__).resolve().parent.parent / "web").resolve()
+    REMOTE_PLACE = os.environ.get("REMOTE_PLACE", "")
+    HUB_LABEL = os.environ.get("HUB_LABEL", "ROSA 上の Skupper")
+    # リモートの VM のコンソール画面（PNG）を返す URL。これも Skupper の Listener の先にある。空なら使わない
+    CONSOLE_URL = os.environ.get("CONSOLE_URL", "")
+    POLL_SEC = float(os.environ.get("POLL_SEC", "1"))
+
+    LOADING_SEC = 6      # 起動してからこの時間は「確認中」。過ぎても届かなければ「届かない」とする
+    ARRIVED_SEC = 30     # 切り替えが終わったことを知らせる表示を続ける時間
+    VIEWER_TTL = 6       # この時間、問い合わせがなければ見ていないとみなす
+    EVENTS_MAX = 30
+    OFFLINE_MAX_SEC = 150  # 再起動にしては長すぎる、と判断する時間。超えたら「届かない」に切り替える
+    VIEWERS_MAX = 5000   # 覚えておく目印の上限。作り物の目印を大量に送られても、際限なく増やさない
+    MAX_CONNECTIONS = 256  # 同時に相手をする接続の上限。超えた接続はすぐに閉じる
+    CONSOLE_FRESH_SEC = 12  # この時間、新しい画面を取れていなければ「中継なし」として扱う
+    BEATS_MAX = 90       # 往復時間を覚えておく数。1 秒に 1 回なので、およそ 90 秒ぶん
+    BOOTS_MAX = 6
+    CLIENT_ID = re.compile(r"^[0-9a-f]{8}$")
+
+    # 画面に出す呼び名。入力させると何でも書けてしまうので、目印から機械的に決める。
+    # 画面側（index.html）の同じ並びと揃えること
+    ADJECTIVES = ["すばやい", "のんびり", "まじめな", "ねむたい", "げんきな", "しずかな", "おしゃれな", "くいしんぼうの"]
+    CATS = ["三毛猫", "黒猫", "白猫", "茶トラ", "サバトラ", "ハチワレ", "キジトラ", "サビ猫"]
+
+
+    def nickname(client_id):
+        if not client_id or not CLIENT_ID.match(client_id):
+            return None
+        n = int(client_id[:4], 16)
+        return ADJECTIVES[n % len(ADJECTIVES)] + CATS[(n >> 3) % len(CATS)]
+
+
+    def call_agent(path, body=None, timeout=4):
+        """リモートの API を呼ぶ。返り値は (HTTP の状態, 本文)。届かなければ例外。"""
+        data = json.dumps(body).encode() if body is not None else None
+        request = urllib.request.Request(
+            AGENT_URL + path, data=data, method="POST" if data else "GET",
+            headers={"Content-Type": "application/json"} if data else {},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.status, json.loads(response.read())
+        except urllib.error.HTTPError as error:
+            try:
+                return error.code, json.loads(error.read())
+            except ValueError:
+                return error.code, {}
+
+
+    class Hub:
+        def __init__(self):
+            self.lock = threading.Lock()
+            self.post_lock = threading.Lock()   # 切り替えの取り次ぎは 1 つずつ
+            self.started_at = time.time()
+            self.remote = None                  # 最後に取れたリモートの状態
+            self.fetched_at = 0.0
+            self.reachable = False
+            self.down_since = None
+            self.phase = "loading"
+            self.phase_since = self.started_at
+            self.run = None                     # 進行中、または直近の切り替え。時刻はこのアプリの時計
+            self.events = []
+            self.viewers = {}
+            self.viewer_count = 0
+            self.beats = []                     # リモートまでの往復にかかった時間（ミリ秒）。届かなかった回は None
+            self.boots = []                     # これまでに見た起動。boot ID が変わったら、再起動したということ
+            self.evidence = None                # リモートで実行したコマンドの、そのままの出力
+            self.evidence_boot = None
+            self.evidence_busy = False
+            self.console_frame = None           # VM のコンソール画面の最新の 1 枚（PNG）
+            self.console_etag = ""
+            self.console_at = 0.0               # 最後に中継と話せた時刻
+
+        # ---- リモートへの問い合わせ
+
+        def poll(self):
+            sent = time.time()
+            try:
+                status, body = call_agent("/api/status", timeout=3)
+                if status != 200:
+                    raise RuntimeError(f"status {status}")
+            except Exception:
+                body = None
+            latency = round((time.time() - sent) * 1000)
+            fetch_boot = None
+            with self.lock:
+                now = time.time()
+                self.beats = (self.beats + [latency if body is not None else None])[-BEATS_MAX:]
+                self.viewers = {k: v for k, v in self.viewers.items() if now - v < VIEWER_TTL}
+                self.viewer_count = len(self.viewers)
+                if body is not None:
+                    run = self.run
+                    if (self._running() and sent < run["t_start"] and body["switch"]["phase"] == "idle"
+                            and (body.get("last") or {}).get("started_at") != run["op"]):
+                        # この応答は、切り替えを頼む前に出した問い合わせへの返事。画面を「切り替え前」に戻さない
+                        body["switch"] = self.remote["switch"]
+                    self.remote = body
+                    self.fetched_at = now
+                    self.reachable = True
+                    self.down_since = None
+                    booted = body.get("booted") or {}
+                    boot_id = booted.get("boot_id")
+                    if boot_id and (not self.boots or self.boots[0]["boot_id"] != boot_id):
+                        self.boots = ([{
+                            "boot_id": boot_id, "target": booted.get("target"), "os": booted.get("os"),
+                            "kernel": booted.get("kernel"), "boot_time": booted.get("boot_time"), "seen_at": now,
+                        }] + self.boots)[:BOOTS_MAX]
+                    if boot_id != self.evidence_boot and body["switch"]["phase"] == "idle" and not self.evidence_busy:
+                        self.evidence_busy = True
+                        fetch_boot = boot_id
+                elif self.reachable or self.down_since is None:
+                    self.reachable = False
+                    self.down_since = now
+                self._advance(now)
+            if fetch_boot:
+                # 取得に時間がかかっても、状態の見張りを止めない
+                threading.Thread(target=self._fetch_evidence, args=(fetch_boot,), daemon=True).start()
+
+        def _fetch_evidence(self, boot_id):
+            try:
+                status, evidence = call_agent("/api/evidence", timeout=25)
+                ok = status == 200 and not evidence.get("pending")
+            except Exception:
+                ok = False
+            with self.lock:
+                self.evidence_busy = False
+                # 取っている間にまた再起動していたら、古い起動の内容なので捨てる
+                if ok and self.boots and self.boots[0]["boot_id"] == boot_id:
+                    self.evidence = evidence
+                    self.evidence_boot = boot_id
+
+        def poll_console(self):
+            headers = {"If-None-Match": f'"{self.console_etag}"'} if self.console_etag else {}
+            try:
+                with urllib.request.urlopen(urllib.request.Request(CONSOLE_URL, headers=headers), timeout=3) as response:
+                    frame = response.read(2_000_000)
+                    etag = (response.headers.get("ETag") or "").strip('"')
+                with self.lock:
+                    self.console_frame, self.console_etag, self.console_at = frame, etag, time.time()
+            except urllib.error.HTTPError as error:
+                if error.code == 304:       # 画面が変わっていない
+                    with self.lock:
+                        self.console_at = time.time()
+            except Exception:
+                pass
+
+        def console_forever(self):
+            while True:
+                started = time.time()
+                self.poll_console()
+                # 切り替えの最中は細かく、何も起きていないときはゆっくり取りにいく
+                busy = self.phase in ("staging", "rebooting", "offline", "arrived")
+                time.sleep(max(0.2, (1.5 if busy else 5) - (time.time() - started)))
+
+        def poll_forever(self):
+            while True:
+                started = time.time()
+                try:
+                    self.poll()
+                except Exception as error:      # 1 回の失敗で見張りを止めない
+                    print(f"poll failed: {error!r}", file=sys.stderr)
+                time.sleep(max(0.1, POLL_SEC - (time.time() - started)))
+
+        # ---- 段階の決定
+
+        def _label(self, target_id):
+            for target in (self.remote or {}).get("targets", []):
+                if target["id"] == target_id:
+                    return target["label"]
+            return "別のイメージ"
+
+        def _event(self, kind, text, now):
+            self.events = ([{"t": now, "kind": kind, "text": text}] + self.events)[:EVENTS_MAX]
+
+        def _running(self):
+            return self.run is not None and "result" not in self.run
+
+        def _phase_now(self, now):
+            remote = self.remote
+            if remote is None:
+                return "lost" if now - self.started_at > LOADING_SEC else "loading"
+            agent_phase = remote["switch"]["phase"]
+            if not self.reachable:
+                # 切り替えの途中で届かなくなったのなら、再起動に入ったということ。
+                # ただし再起動にしては長すぎるなら、マシンか回線に何かあったとみなす
+                switching = agent_phase != "idle" or self._running()
+                return "offline" if switching and now - (self.down_since or now) < OFFLINE_MAX_SEC else "lost"
+            if agent_phase in ("staging", "rebooting"):
+                return agent_phase
+            run = self.run
+            if run and run.get("result") == "ok" and now - run["t_back"] < ARRIVED_SEC:
+                return "arrived"
+            return "idle"
+
+        def _advance(self, now):
+            remote = self.remote
+            if remote is not None and self.reachable:
+                switch = remote["switch"]
+                if switch["phase"] != "idle":
+                    # このアプリを通らずに始まった切り替え（このアプリの再起動をまたいだ場合も含む）
+                    if not self.run or self.run["op"] != switch.get("started_at"):
+                        self._begin_run(switch.get("target"), switch.get("from"), None, now, switch.get("started_at"))
+                elif self._running():
+                    self._finish_run(remote.get("last"), now)
+
+            phase = self._phase_now(now)
+            if phase == self.phase:
+                return
+            previous, self.phase, self.phase_since = self.phase, phase, now
+            run = self.run
+            if phase == "rebooting" and run:
+                run.setdefault("t_staged", now)
+                self._event("reboot", "次に起動するイメージを設定しました。再起動します。", now)
+            elif phase == "offline" and run:
+                run.setdefault("t_staged", now)
+                run.setdefault("t_offline", now)
+                self._event("offline", "リモートの Fedora が再起動に入りました。", now)
+            elif phase == "lost" and previous not in ("loading", "lost"):
+                self._event("lost", "リモートの Fedora に届かなくなりました。", now)
+            elif previous == "lost" and phase in ("idle", "arrived"):
+                self._event("recovered", "リモートの Fedora に届くようになりました。", now)
+
+        def _begin_run(self, target, source, by, now, op):
+            # op は、リモートが切り替えを受け付けた時刻。同じ切り替えかどうかを、この値で見分ける
+            self.run = {"id": round(now * 1000), "op": op, "target": target, "from": source, "by": by, "t_start": now}
+            self._event("start", self._start_text(by, target), now)
+
+        def _start_text(self, by, target):
+            who = f"{by} さん" if by else "誰か"
+            return f"{who}が {self._label(target)} への切り替えを始めました。"
+
+        def _finish_run(self, last, now):
+            run = self.run
+            if not last or last.get("started_at") != run["op"]:
+                return      # まだ結果が出ていない
+            run["t_back"] = now
+            run["duration_sec"] = round(now - run["t_start"], 1)
+            if last.get("result") == "ok" and last.get("to") == run["target"]:
+                run["result"] = "ok"
+                self._event("arrived", f"{self._label(run['target'])} で起動しました。{round(run['duration_sec'])} 秒かかりました。", now)
+            else:
+                run["result"] = "failed"
+                run["error"] = last.get("error") or "切り替わりませんでした"
+                self._event("failed", f"切り替えに失敗しました。{run['error']}", now)
+
+        # ---- 画面からの要求
+
+        def state(self, client_id):
+            with self.lock:
+                now = time.time()
+                if client_id and CLIENT_ID.match(client_id) and (client_id in self.viewers or len(self.viewers) < VIEWERS_MAX):
+                    self.viewers[client_id] = now
+                remote = self.remote
+                cooldown = 0
+                if remote:
+                    cooldown = max(0, remote.get("cooldown_remaining_sec", 0) - (now - self.fetched_at))
+                return {
+                    "now": now,
+                    "phase": self.phase,
+                    "phase_since": self.phase_since,
+                    "reachable": self.reachable,
+                    "down_since": self.down_since,
+                    "remote": remote,
+                    "place": REMOTE_PLACE or ((remote or {}).get("site") or {}).get("place", ""),
+                    "hub_label": HUB_LABEL,
+                    "beats": self.beats,
+                    "boots": self.boots,
+                    "evidence_boot": self.evidence_boot,
+                    # コンソール画面の中継が生きていれば、いまの画面の目印を渡す。画面はこれが変わったときだけ取り直す
+                    "console": self.console_etag if now - self.console_at < CONSOLE_FRESH_SEC else None,
+                    "cooldown_remaining_sec": round(cooldown, 1),
+                    "run": self.run,
+                    "events": self.events[:12],
+                    # 数えるのは 1 秒に 1 回。開いた直後の自分も数に入るように、少なくとも 1 にする
+                    "viewers": max(1, self.viewer_count),
+                }
+
+        def request_switch(self, target, client_id):
+            # 同時に押された要求のうち、先に来た 1 つだけがリモートへ進む。ほかは待たせずに断る
+            if not self.post_lock.acquire(blocking=False):
+                return 409, {"error": "busy"}
+            try:
+                with self.lock:
+                    now = time.time()
+                    if self.remote is None or not self.reachable:
+                        return 409, {"error": "unreachable"}
+                    if self.phase not in ("idle", "arrived"):
+                        return 409, {"error": "busy"}
+                    if self.remote.get("cooldown_remaining_sec", 0) - (now - self.fetched_at) > 0:
+                        return 409, {"error": "cooldown"}
+                    source = (self.remote.get("booted") or {}).get("target")
+                try:
+                    status, body = call_agent("/api/switch", {"target": target}, timeout=6)
+                except Exception:
+                    return 502, {"error": "unreachable"}
+                if status == 202:
+                    by, op = nickname(client_id), body.get("started_at")
+                    with self.lock:
+                        now = time.time()
+                        if self.run and self.run["op"] == op:
+                            # 見張りのほうが先にこの切り替えに気づいていた。誰が始めたかだけを書き足す
+                            self.run["by"] = by
+                            for event in self.events:
+                                if event["kind"] == "start" and event["text"] == self._start_text(None, target):
+                                    event["text"] = self._start_text(by, target)
+                                    break
+                        else:
+                            self._begin_run(target, source, by, now, op)
+                            if self.remote["switch"]["phase"] == "idle":
+                                # 次の問い合わせを待たずに、全員の画面を「切り替え中」に進める
+                                self.remote["switch"] = {"phase": "staging", "target": target, "from": source, "started_at": op, "log": []}
+                        self._advance(now)
+                return status, body
+            finally:
+                self.post_lock.release()
+
+
+    class BoundedServer(ThreadingHTTPServer):
+        """接続ごとにスレッドを 1 つ使うので、数に上限を付ける。上限を超えた接続は、待たせずに閉じる。"""
+
+        daemon_threads = True
+        request_queue_size = 128
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
+
+        def process_request(self, request, client_address):
+            if not self._slots.acquire(blocking=False):
+                self.shutdown_request(request)
+                return
+            super().process_request(request, client_address)
+
+        def process_request_thread(self, request, client_address):
+            try:
+                super().process_request_thread(request, client_address)
+            finally:
+                self._slots.release()
+
+
+    STATIC_TYPES = {
+        ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
+        ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml",
+        ".png": "image/png", ".webp": "image/webp", ".ico": "image/x-icon",
+    }
+
+
+    def make_handler(hub):
+        class Handler(BaseHTTPRequestHandler):
+            server_version = "skupper-bootc-demo"
+            protocol_version = "HTTP/1.1"
+            timeout = 30
+
+            def _send(self, code, data, content_type, cache="no-store"):
+                self.send_response(code)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", cache)
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(data)
+
+            def _json(self, code, body):
+                self._send(code, json.dumps(body, ensure_ascii=False).encode(), "application/json; charset=utf-8")
+
+            def do_GET(self):
+                path, _, query = self.path.partition("?")
+                if path == "/api/state":
+                    client_id = dict(pair.partition("=")[::2] for pair in query.split("&")).get("c")
+                    return self._json(200, hub.state(client_id))
+                if path == "/api/evidence":
+                    with hub.lock:
+                        evidence = hub.evidence
+                    return self._json(200, evidence or {"commands": [], "boot_log": []})
+                if path == "/api/console.png":
+                    with hub.lock:
+                        frame, etag = hub.console_frame, hub.console_etag
+                    if frame is None:
+                        return self._json(404, {"error": "no_console"})
+                    # URL に目印を付けて取りにくるので、同じ URL の中身は変わらない。ブラウザに覚えさせてよい
+                    return self._send(200, frame, "image/png", "public, max-age=600")
+                if path == "/healthz":
+                    return self._json(200, {"ok": True})
+                self._static(path)
+
+            do_HEAD = do_GET
+
+            def do_POST(self):
+                if self.path.split("?", 1)[0] != "/api/switch":
+                    return self._json(404, {"error": "not_found"})
+                try:
+                    length = int(self.headers.get("Content-Length") or 0)
+                except ValueError:
+                    length = -1
+                if not 0 < length <= 1024:
+                    return self._json(400, {"error": "bad_request"})
+                try:
+                    body = json.loads(self.rfile.read(length))
+                    target, client_id = body.get("target"), body.get("c")
+                except (ValueError, AttributeError):
+                    return self._json(400, {"error": "bad_request"})
+                if not isinstance(target, str) or len(target) > 64:
+                    return self._json(400, {"error": "bad_request"})
+                self._json(*hub.request_switch(target, client_id if isinstance(client_id, str) else None))
+
+            def _static(self, path):
+                name = "index.html" if path == "/" else path.lstrip("/")
+                file = (STATIC_DIR / name).resolve()
+                if STATIC_DIR not in file.parents or not file.is_file() or file.suffix not in STATIC_TYPES:
+                    return self._json(404, {"error": "not_found"})
+                cache = "no-cache" if file.suffix == ".html" else "public, max-age=3600"
+                self._send(200, file.read_bytes(), STATIC_TYPES[file.suffix], cache)
+
+            def log_message(self, fmt, *args):
+                # 状態の問い合わせは毎秒来るので、記録するのは操作と失敗だけにする
+                if getattr(self, "command", "") == "POST" or not str(args[1] if len(args) > 1 else "").startswith(("2", "3")):
+                    sys.stderr.write("%s %s\n" % (self.address_string(), fmt % args))
+
+        return Handler
+
+
+    def main():
+        hub = Hub()
+        threading.Thread(target=hub.poll_forever, daemon=True).start()
+        if CONSOLE_URL:
+            threading.Thread(target=hub.console_forever, daemon=True).start()
+        address, _, port = LISTEN.rpartition(":")
+        server = BoundedServer((address, int(port)), make_handler(hub))
+        print(f"listening on {LISTEN}, remote API at {AGENT_URL}", file=sys.stderr)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+
+
+    if __name__ == "__main__":
+        main()
+  index.html: |
+    <!doctype html>
+    <html lang="ja">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>遠隔イメージ切替 | Skupper と image mode のデモ</title>
+    <meta name="description" content="会場の Kubernetes にデプロイしたデモアプリから、Skupper のリンクを通って、image mode で動く遠くの Fedora の OS イメージを切り替えるデモです。">
+    <link rel="icon" href="assets/suu-face.webp">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=DotGothic16&display=swap" rel="stylesheet">
+    <style>
+    :root {
+      /* CNDW2026 のデザインガイドの 4 色 */
+      --cream: #fdffe6;
+      --blue: #216a9c;
+      --magenta: #be4493;
+      --orange: #e99411;
+      --ink: #2c3338;
+      --soft: #5d666c;
+      --rule: rgba(44, 51, 56, .16);
+      --mute: #c9cdbd;
+      --card: #ffffff;
+      --night: #16242f;
+      --glow: #ffd27a;
+      --dim: #b89a5c;
+      --tail: linear-gradient(90deg, var(--orange), var(--magenta));
+      --text: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
+      --dots: "DotGothic16", "Zen Maru Gothic", monospace;
+      --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      --hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+      --cat: 14rem;                        /* しっぽを伸ばした猫の幅 */
+      --tail-y: calc(var(--cat) * .285);   /* 猫の絵の中で、しっぽの先がくる高さ */
+    }
+
+    /* 画面の幅に合わせて全体を伸び縮みさせる。大きな画面でも小さく縮こまらない */
+    html { font-size: clamp(15px, .52vw + 9.5px, 30px); -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font-family: var(--text); font-weight: 500; line-height: 1.85; }
+    .wrap { width: min(100% - 2 * clamp(1rem, 3.5vw, 3rem), 104rem); margin: 0 auto; }
+    a { color: var(--blue); text-underline-offset: .2em; }
+    a:focus-visible, button:focus-visible { outline: .2rem solid var(--blue); outline-offset: .2rem; }
+    img { max-width: 100%; height: auto; }
+    p { margin: 0; }
+
+    .masthead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 2rem; padding: .9rem 0 .5rem; }
+    .masthead img { display: block; width: 12.5rem; }
+    .masthead p { font-size: .92rem; font-weight: 700; color: var(--blue); }
+
+    .intro { padding: .6rem 0 1.3rem; }
+    .intro h1 { margin: 0; font-size: clamp(1.75rem, 1rem + 2.5vw, 3.4rem); font-weight: 900; line-height: 1.3; color: var(--blue); }
+    .intro h1 span { display: inline-block; }
+    .intro p { margin-top: .7rem; max-width: 70em; font-size: 1.02rem; line-height: 1.75; text-wrap: pretty; }
+
+    /* ---- 舞台 */
+    .show { position: relative; background: var(--card); border: .2rem solid var(--blue); border-radius: 1.6rem; padding: clamp(.9rem, 2vw, 1.8rem); overflow: hidden; }
+    .sim-note { display: table; margin: 0 auto .6rem; font-size: .84rem; line-height: 1.6; padding: .15em .9em; border: .12rem dashed var(--magenta); border-radius: .5rem; }
+    .headline { text-align: center; font-size: clamp(1.35rem, .9rem + 1.9vw, 2.6rem); font-weight: 900; line-height: 1.35; color: var(--blue); min-height: 1.35em; }
+    .headline.is-fresh { animation: rise .45s ease-out; }
+    .headline[data-tone="busy"] { color: var(--magenta); }
+    .headline[data-tone="alert"] { color: #b3261e; }
+    @keyframes rise { from { transform: translateY(.6rem); opacity: 0; } }
+
+    .stage {
+      margin-top: .4rem; display: grid; align-items: start; column-gap: 0;
+      grid-template-columns: var(--cat) minmax(0, 1fr) minmax(12rem, 15rem) minmax(0, 1fr) var(--cat);
+      grid-template-areas: "catv . hub . catr" "venue venue center remote remote";
+    }
+    .cat { display: block; width: var(--cat); position: relative; z-index: 3; margin-bottom: -.8rem; transform-origin: 50% 100%; }
+    .cat-venue { grid-area: catv; }
+    .cat-remote { grid-area: catr; }
+    .wire { grid-row: 1; grid-column: 2 / 5; position: relative; height: .55rem; margin: calc(var(--tail-y) - .27rem) -1.4rem 0; z-index: 1; }
+    .wire-half { position: absolute; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, var(--orange), #d46c52); border-radius: 99px 0 0 99px; }
+    .wire-half + .wire-half { left: 50%; background: linear-gradient(90deg, #d46c52, var(--magenta)); border-radius: 0 99px 99px 0; }
+    .wire-half::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit;
+      background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .8) 0 .45rem, transparent .45rem 1.5rem);
+      animation: flow 1.1s linear infinite;
+    }
+    @keyframes flow { to { background-position: 1.5rem 0; } }
+    .wire-half.is-down { background: repeating-linear-gradient(90deg, #b8bcab 0 .55rem, transparent .55rem 1.1rem); }
+    .wire-half.is-down::after { display: none; }
+    .wire-label { position: absolute; top: .95rem; font-size: .74rem; font-weight: 700; line-height: 1.35; text-align: center; color: var(--soft); white-space: nowrap; transform: translateX(-50%); }
+    .wire-label.is-a { left: 22%; }
+    .wire-label.is-b { left: 78%; }
+    .packet { position: absolute; top: 50%; left: 0; width: 1.3rem; height: 1.3rem; margin: -.65rem 0 0 -.65rem; border-radius: 50%; background: #fff; border: .25rem solid var(--magenta); box-shadow: 0 0 1.2rem .2rem var(--orange); opacity: 0; }
+    .stage.is-sending .packet { animation: travel 1.3s cubic-bezier(.45, 0, .55, 1) both; }
+    .stage.is-sending .packet + .packet { animation-delay: .25s; }
+    .stage.is-sending .packet + .packet + .packet { animation-delay: .5s; }
+    @keyframes travel { 0% { left: 0; opacity: 1; } 90% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+
+    .hub { grid-area: hub; justify-self: center; text-align: center; margin-top: calc(var(--tail-y) - 2.75rem); position: relative; z-index: 2; }
+    .hub-hex { margin: 0 auto; width: 5.5rem; aspect-ratio: 1 / 1.1547; clip-path: var(--hex); background: var(--blue); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 1.1rem; }
+    .stage.is-sending .hub-hex { animation: bump .5s ease-out .5s; }
+    @keyframes bump { 40% { transform: scale(1.18); background: var(--magenta); } }
+    .hub-label { margin-top: .3rem; font-size: .84rem; font-weight: 900; line-height: 1.35; }
+    .hub-sub { font-size: .7rem; line-height: 1.35; color: var(--soft); }
+
+    .site-card { position: relative; z-index: 2; background: var(--cream); border: .16rem solid var(--ink); border-radius: 1.1rem; padding: 1.2rem 1.1rem 1.1rem; min-width: 0; }
+    .site-venue { grid-area: venue; }
+    .site-remote { grid-area: remote; }
+    .site-name { font-size: 1.15rem; font-weight: 900; line-height: 1.4; }
+    .site-sub { margin-bottom: .7rem; font-size: .84rem; line-height: 1.5; color: var(--soft); }
+
+    .app { background: var(--card); border-radius: .8rem; border: .12rem solid var(--rule); padding: .8rem .9rem .9rem; display: grid; gap: .7rem; }
+    .app-head { display: flex; align-items: center; gap: .7rem; line-height: 1.45; }
+    .hexmark { flex: none; width: 2.3rem; aspect-ratio: 1 / 1.1547; clip-path: var(--hex); background: var(--blue); }
+    .app-head b { display: block; font-size: 1rem; }
+    .app-head span { display: block; font-size: .8rem; color: var(--soft); }
+    .buttons { display: grid; gap: .6rem; }
+    .switch-btn {
+      width: 100%; font: inherit; font-weight: 900; font-size: 1.18rem; line-height: 1.4; color: #fff; cursor: pointer;
+      background: var(--tail); border: 0; border-radius: 99px; padding: .7em 1em;
+      box-shadow: 0 .32rem 0 #8d2f6b; transition: transform .06s, box-shadow .06s;
+    }
+    .switch-btn:active:not(:disabled) { transform: translateY(.28rem); box-shadow: 0 .04rem 0 #8d2f6b; }
+    .switch-btn:disabled { background: var(--mute); color: #f5f7e6; box-shadow: 0 .32rem 0 #a4a898; cursor: not-allowed; }
+    .cooldown { height: .45rem; border-radius: 99px; background: var(--rule); overflow: hidden; }
+    .cooldown i { display: block; height: 100%; background: var(--tail); transition: width 1s linear; }
+    .hint { font-size: .9rem; line-height: 1.65; min-height: 3.3em; }
+    .meta { margin-top: .7rem; font-size: .84rem; line-height: 1.6; color: var(--soft); }
+    .meta b { color: var(--ink); }
+    .meta .count { font-size: 1.2rem; color: var(--magenta); font-weight: 900; }
+
+    /* 中央。進み具合を縦に並べる */
+    .center { grid-area: center; padding: 1.4rem .9rem 0; }
+    .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: .2rem; }
+    .steps li { position: relative; counter-increment: step; padding: 0 0 1.05rem 2.9rem; min-height: 2.9rem; font-size: .88rem; font-weight: 700; line-height: 1.45; color: var(--soft); display: flex; align-items: center; }
+    .steps li::before {
+      content: counter(step); position: absolute; left: 0; top: 0; width: 2.1rem; height: 2.1rem; z-index: 1;
+      display: grid; place-items: center; border-radius: 50%; background: var(--card); border: .16rem solid var(--mute); color: var(--soft); font-weight: 900;
+    }
+    .steps li::after { content: ""; position: absolute; left: .94rem; top: 2.1rem; bottom: -.2rem; width: .22rem; background: var(--mute); }
+    .steps li:last-child::after { display: none; }
+    .steps li.is-done, .steps li.is-now { color: var(--ink); }
+    .steps li.is-done::before { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .steps li.is-done::after { background: linear-gradient(180deg, var(--orange), var(--magenta)); }
+    .steps li.is-now::before { border-color: var(--magenta); color: var(--magenta); animation: ring 1s ease-out infinite; }
+    @keyframes ring { from { box-shadow: 0 0 0 0 rgba(190, 68, 147, .55); } to { box-shadow: 0 0 0 .8rem rgba(190, 68, 147, 0); } }
+
+    /* リモートのマシン */
+    .machine { background: var(--ink); border-radius: 1rem; padding: .6rem; }
+    .screen { position: relative; min-height: 12.6rem; border-radius: .55rem; background: var(--night); color: var(--glow); font-family: var(--dots); line-height: 1.5; padding: .9rem 1rem; overflow: hidden; display: grid; align-content: center; }
+    .os { font-size: clamp(1.4rem, 1rem + 1.2vw, 2.1rem); line-height: 1.25; text-shadow: 0 0 .9rem rgba(255, 210, 122, .5); }
+    .specs { margin: .6rem 0 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0 .9rem; font-size: .88rem; }
+    .specs div { display: contents; }
+    .specs dt { color: var(--dim); }
+    .specs dd { margin: 0; overflow-wrap: anywhere; }
+    .overlay { position: absolute; inset: 0; display: none; place-items: center; align-content: center; gap: .6rem; text-align: center; padding: .9rem; background: var(--night); }
+    .overlay p { font-size: .95rem; }
+    .swap-row { position: relative; width: 100%; height: 3.3rem; }
+    .tile { position: absolute; top: 0; left: 50%; width: 10.5rem; margin-left: -5.25rem; padding: .4rem 0; border-radius: .5rem; font-size: 1.45rem; line-height: 1.6; }
+    .tile-from { background: #33485a; color: #b9c7d2; animation: slide-out 2.6s cubic-bezier(.6, 0, .3, 1) infinite; }
+    .tile-to { background: var(--glow); color: var(--night); animation: slide-in 2.6s cubic-bezier(.6, 0, .3, 1) infinite; }
+    @keyframes slide-out { 0%, 12% { transform: translateX(0); opacity: 1; } 45%, 100% { transform: translateX(-135%); opacity: 0; } }
+    @keyframes slide-in { 0%, 12% { transform: translateX(135%); opacity: 0; } 45%, 100% { transform: translateX(0); opacity: 1; } }
+    .swap-log { color: var(--dim); font-size: .8rem; overflow-wrap: anywhere; min-height: 1.4em; }
+    .spinner { width: 3.2rem; height: 3.2rem; border-radius: 50%; border: .4rem solid #33485a; border-top-color: var(--glow); animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .boot-time { font-size: 1.8rem !important; line-height: 1.2; }
+    .overlay-log { place-items: stretch; align-content: end; text-align: left; gap: 0; }
+    .overlay-log p { font-size: .72rem; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .overlay-log .log-cap { color: var(--dim); margin-bottom: .3rem; white-space: normal; }
+    /* 本物のコンソール画面。中継が届いているときは、再起動の間これを画面いっぱいに出す */
+    .console { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: left top; background: #000; display: none; image-rendering: auto; }
+    .screen.is-console { aspect-ratio: 4 / 3; min-height: 0; padding: 0; }
+    .screen.is-console .console { display: block; }
+    .console-note { display: none; padding: .45rem .4rem 0; color: #dfe5e8; font-size: .76rem; line-height: 1.5; }
+    .machine.has-console .console-note { display: block; }
+    .console-toggle { font: inherit; font-size: .76rem; font-weight: 700; color: var(--glow); background: none; border: .1rem solid var(--dim); border-radius: 99px; padding: .05rem .7rem; margin-left: auto; cursor: pointer; display: none; }
+    .machine.has-console .console-toggle { display: inline-block; }
+    .stage[data-phase="staging"] .overlay-swap, .stage[data-phase="rebooting"] .overlay-swap { display: grid; }
+    .stage[data-phase="offline"] .overlay-boot { display: grid; }
+    .stage[data-phase="lost"] .overlay-lost, .stage[data-phase="loading"] .overlay-lost { display: grid; }
+    .stage.is-replaying .overlay-log { display: grid; }
+    .stage[data-phase="arrived"] .screen { animation: flash 1.1s ease-out; }
+    .stage[data-phase="arrived"] .os { animation: pop .9s cubic-bezier(.2, 1.6, .4, 1); }
+    @keyframes flash { 0% { background: #fff; } 100% { background: var(--night); } }
+    @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .machine-foot { display: flex; align-items: center; gap: .5rem; padding: .5rem .4rem .05rem; color: #dfe5e8; font-size: .8rem; line-height: 1.4; }
+    .power { flex: none; width: .7rem; height: .7rem; border-radius: 50%; background: #5d6a72; }
+    .power.is-on { background: #7be07b; box-shadow: 0 0 .6rem #7be07b; }
+    .power.is-busy { background: var(--orange); animation: blink .8s steps(2, jump-none) infinite; }
+    @keyframes blink { 50% { opacity: .25; } }
+
+    /* 猫は、切り替えの節目でだけ動かす */
+    .stage.is-sending .cat-venue { animation: hop .55s ease-out 2; }
+    .stage[data-phase="offline"] .cat-remote { animation: sway 1.6s ease-in-out infinite; }
+    .stage[data-phase="arrived"] .cat { animation: hop .55s ease-out 3; }
+    @keyframes hop { 40% { transform: translateY(-1.1rem) rotate(-3deg); } }
+    @keyframes sway { 50% { transform: rotate(2.5deg); } }
+
+    .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+    .confetti i { position: absolute; top: -1.2rem; width: .7rem; height: .7rem; animation: fall linear forwards; }
+    @keyframes fall { to { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)); opacity: 0; } }
+
+    /* 舞台の下。みんなに起きていることと、リモートの脈 */
+    .live { margin-top: 1.3rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+    .box { padding: .9rem 1.1rem; background: var(--cream); border-radius: 1rem; min-width: 0; }
+    .box h3 { margin: 0 0 .3rem; font-size: .98rem; line-height: 1.5; }
+    .feed { list-style: none; margin: 0; padding: 0; height: 9.5em; overflow: hidden; }
+    .feed li { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0 .9rem; font-size: .9rem; line-height: 1.9; }
+    .feed li.is-new { animation: rise .4s ease-out; }
+    .feed time { color: var(--soft); font-variant-numeric: tabular-nums; }
+    .feed .none { display: block; color: var(--soft); }
+    .pulse { display: block; width: 100%; height: 6.2rem; background: var(--night); border-radius: .6rem; }
+    .pulse-note { margin-top: .4rem; font-size: .84rem; line-height: 1.6; color: var(--soft); }
+    .pulse-note b { color: var(--ink); }
+
+    /* ---- 解説 */
+    .section { padding: clamp(2.2rem, 4.5vw, 3.6rem) 0 0; }
+    .section h2 { margin: 0 0 1rem; font-size: clamp(1.45rem, 1.1rem + 1.2vw, 2.1rem); font-weight: 900; line-height: 1.4; color: var(--blue); }
+    .lede { max-width: 56em; margin-bottom: 1.2rem; }
+    .sequence { margin: 0; padding: 0; list-style: none; counter-reset: seq; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4rem 2rem; }
+    .sequence li { counter-increment: seq; padding-top: .8rem; border-top: .3rem solid var(--blue); }
+    .sequence li::before { content: counter(seq); display: block; font-size: 2rem; font-weight: 900; line-height: 1.2; color: var(--magenta); margin-bottom: .2rem; }
+
+    /* 確かめる */
+    .proof { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 1.4rem clamp(1.5rem, 3vw, 3rem); }
+    .proof h3 { margin: 0 0 .5rem; font-size: 1.1rem; font-weight: 900; line-height: 1.5; }
+    .boots { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .5rem; }
+    .boots li { padding: .6rem .9rem; background: var(--card); border: .12rem solid var(--rule); border-radius: .7rem; line-height: 1.55; }
+    .boots li:first-child { border-color: var(--magenta); }
+    .boots .when { font-size: .82rem; color: var(--soft); }
+    .boots .what { font-weight: 900; }
+    .boots code { font-family: var(--mono); font-size: .8rem; overflow-wrap: anywhere; }
+    .raw { background: var(--night); color: #e9eef1; border-radius: .8rem; padding: 1rem 1.1rem; font-family: var(--mono); font-size: .78rem; line-height: 1.65; max-height: 30rem; overflow: auto; }
+    .raw .cmd { color: var(--glow); margin-top: .7rem; }
+    .raw .cmd:first-child { margin-top: 0; }
+    .raw pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+    .raw-note { margin-top: .5rem; font-size: .84rem; color: var(--soft); }
+
+    /* Skupper と image mode の解説。左に文章、右に図 */
+    .explain { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1.4rem clamp(1.5rem, 3vw, 3rem); align-items: start; }
+    .explain .face { float: right; width: 4.6rem; margin: -.4rem 0 .2rem .8rem; }
+    .points { margin: 1rem 0 0; padding: 0; list-style: none; display: grid; gap: .7rem; }
+    .points li { padding-left: 1.5rem; position: relative; }
+    .points li::before { content: ""; position: absolute; left: 0; top: .62em; width: .8rem; aspect-ratio: 1 / 1.1547; clip-path: var(--hex); background: var(--magenta); }
+    .points b { display: block; }
+    .note { margin-top: 1rem; font-size: .9rem; color: var(--soft); }
+
+    /* 図。箱と線だけで組む。狭い画面では縦に並べ直す */
+    .dia { margin: 0; padding: 1.1rem; background: var(--card); border: .16rem solid var(--blue); border-radius: 1.1rem; }
+    .dia figcaption { margin-top: .9rem; font-size: .88rem; line-height: 1.65; }
+    .dia-row { display: flex; align-items: stretch; }
+    .d-site { flex: 1 1 0; min-width: 0; border: .14rem dashed var(--soft); border-radius: .8rem; padding: .6rem .5rem .7rem; display: grid; gap: .45rem; align-content: start; text-align: center; }
+    .d-site.is-nat { border-color: var(--magenta); }
+    .d-name { font-size: .84rem; font-weight: 900; line-height: 1.35; }
+    .d-name span { display: block; font-size: .72rem; font-weight: 500; color: var(--soft); }
+    .d-node { font-size: .8rem; font-weight: 700; line-height: 1.35; padding: .35rem .3rem; border-radius: .5rem; background: var(--cream); border: .1rem solid var(--rule); }
+    .d-node span { display: block; font-size: .68rem; font-weight: 500; color: var(--soft); }
+    .d-node.is-app { background: #e4eff6; border-color: var(--blue); }
+    /* 横に並べたときに、3 つの箱でルータの高さを揃えるための空き。縦に積むときは要らない */
+    .d-node.is-ghost { visibility: hidden; }
+    .d-router { justify-self: center; width: 2.6rem; aspect-ratio: 1 / 1.1547; clip-path: var(--hex); background: var(--blue); color: #fff; font-size: .62rem; font-weight: 900; display: grid; place-items: center; line-height: 1; }
+    .d-link { flex: 0 0 clamp(1.6rem, 6%, 3.4rem); position: relative; align-self: end; height: .4rem; margin-bottom: 1.9rem; background: var(--tail); }
+    .d-link span { position: absolute; bottom: .55rem; left: 50%; transform: translateX(-50%); font-size: .68rem; font-weight: 700; white-space: nowrap; color: var(--soft); }
+    .d-van { margin-top: .6rem; border: .14rem solid var(--orange); border-top: 0; border-radius: 0 0 .8rem .8rem; height: .7rem; }
+    .d-van-label { text-align: center; font-size: .82rem; font-weight: 900; color: var(--orange); line-height: 1.5; }
+    .d-compare { margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+    .d-compare div { padding: .6rem .7rem; border-radius: .7rem; background: var(--cream); font-size: .8rem; line-height: 1.55; }
+    .d-compare b { display: block; font-size: .86rem; }
+    .d-compare .dots { display: flex; gap: .25rem; margin: .35rem 0 .1rem; }
+    .d-compare .dots i { width: .7rem; height: .7rem; border-radius: 50%; background: var(--mute); }
+    .d-compare .dots i.on { background: var(--magenta); }
+
+    .d-flow { display: flex; align-items: stretch; gap: 0; }
+    .d-step { flex: 1 1 0; min-width: 0; display: grid; gap: .4rem; align-content: start; text-align: center; }
+    .d-step > b { font-size: .84rem; line-height: 1.4; }
+    .d-arrow { flex: 0 0 clamp(1.4rem, 5%, 2.6rem); align-self: center; height: .35rem; background: var(--tail); position: relative; margin-top: 1.2rem; }
+    .d-arrow::after { content: ""; position: absolute; right: -.1rem; top: 50%; border: .5rem solid transparent; border-left-color: var(--magenta); border-right: 0; transform: translateY(-50%); }
+    .d-file { text-align: left; font-family: var(--mono); font-size: .66rem; line-height: 1.6; background: var(--night); color: #e9eef1; border-radius: .5rem; padding: .5rem .6rem; overflow: hidden; white-space: nowrap; }
+    .d-layers { display: grid; gap: .2rem; }
+    .d-layers i { display: block; font-style: normal; font-size: .7rem; font-weight: 700; line-height: 1.5; padding: .2rem; border-radius: .35rem; color: #fff; background: var(--blue); }
+    .d-layers i:nth-child(2) { background: #3f83b1; }
+    .d-layers i:nth-child(3) { background: var(--magenta); }
+    .d-disk { border: .14rem solid var(--ink); border-radius: .6rem; padding: .45rem; display: grid; gap: .35rem; }
+    .d-slot { font-size: .74rem; font-weight: 700; line-height: 1.4; padding: .35rem .2rem; border-radius: .4rem; background: var(--cream); border: .1rem solid var(--rule); }
+    .d-slot.is-live { background: var(--glow); border-color: var(--orange); }
+    .d-slot span { display: block; font-size: .66rem; font-weight: 500; }
+    .d-swap { font-size: .7rem; font-weight: 900; color: var(--magenta); line-height: 1.2; }
+
+    .mech { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem clamp(1.5rem, 3vw, 3rem); padding: 1.4rem 0; border-top: .08rem solid var(--rule); }
+    .mech h3 { margin: 0 0 .4rem; font-size: 1.12rem; font-weight: 900; line-height: 1.5; }
+    pre.code { margin: 0; padding: .9em 1.1em; overflow-x: auto; align-self: start; background: var(--night); color: #e9eef1; border-radius: .7rem; font-family: var(--mono); font-size: .8rem; line-height: 1.7; }
+    pre.code .c { color: #9fb2bf; }
+    .limits { margin: 0; align-self: start; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .3em 1.4em; padding: .9em 1.1em; background: var(--card); border: .12rem solid var(--rule); border-radius: .7rem; }
+    .limits dt { font-weight: 900; }
+    .limits dd { margin: 0; }
+
+    .records { width: 100%; border-collapse: collapse; font-size: .95rem; }
+    .records th, .records td { text-align: left; padding: .5em 1.2em .5em 0; border-bottom: .08rem solid var(--rule); vertical-align: top; }
+    .records th { border-bottom: .16rem solid var(--blue); font-size: .85rem; color: var(--blue); }
+    footer { margin-top: clamp(3rem, 6vw, 5rem); padding: 1.3rem 0 2.2rem; border-top: .16rem solid var(--blue); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem 2rem; font-size: .9rem; }
+    footer img { display: block; width: 4rem; }
+
+    /* ---- 中くらいの幅。猫を小さくして横並びを保つ */
+    @media (max-width: 1100px) { :root { --cat: 11.5rem; } .stage { grid-template-columns: var(--cat) minmax(0, 1fr) minmax(10.5rem, 12rem) minmax(0, 1fr) var(--cat); } }
+
+    /* ---- 狭い画面。横に並べていたものを縦に積む */
+    @media (max-width: 820px) {
+      :root { --cat: 11rem; }
+      .stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "catv" "venue" "hub" "catr" "remote" "center"; }
+      .cat { justify-self: center; }
+      .wire { display: none; }
+      .hub { margin: 0 auto; padding: 3.2rem 0 2.4rem; }
+      .hub::before, .hub::after { content: ""; position: absolute; left: 50%; width: .5rem; margin-left: -.25rem; height: 2.6rem; border-radius: 99px; background: linear-gradient(180deg, var(--orange), var(--magenta)); }
+      .hub::before { top: .3rem; }
+      .hub::after { bottom: -.3rem; }
+      .stage.is-down-a .hub::before, .stage.is-down-b .hub::after { background: repeating-linear-gradient(180deg, #b8bcab 0 .5rem, transparent .5rem 1rem); }
+      .cat-remote { margin-top: 2.2rem; }
+      .center { padding: 1.4rem .3rem 0; }
+      .live, .proof, .explain, .mech { grid-template-columns: minmax(0, 1fr); }
+      .sequence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dia-row, .d-flow { flex-direction: column; gap: 0; }
+      .d-link { flex-basis: 2rem; align-self: center; width: .4rem; height: 2rem; margin: 0; background: linear-gradient(180deg, var(--orange), var(--magenta)); }
+      .d-link span { bottom: auto; top: 50%; left: 1rem; transform: translateY(-50%); }
+      .d-arrow { flex-basis: 1.8rem; width: .35rem; height: 1.8rem; margin: .3rem 0; background: linear-gradient(180deg, var(--orange), var(--magenta)); }
+      .d-arrow::after { right: auto; left: 50%; top: auto; bottom: -.1rem; border: .5rem solid transparent; border-top-color: var(--magenta); border-bottom: 0; transform: translateX(-50%); }
+      .d-van { display: none; }
+      .d-node.is-ghost { display: none; }
+      .feed { height: auto; min-height: 4em; }
+    }
+    @media (max-width: 560px) { .sequence { grid-template-columns: minmax(0, 1fr); } .d-compare { grid-template-columns: 1fr; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .tile-from { display: none; }
+    }
+    </style>
+    </head>
+    <body>
+    <div class="wrap">
+
+    <header class="masthead">
+      <a href="https://event.cloudnativedays.jp/cndw2026"><img src="assets/cndw2026-logo.webp" width="640" height="125" alt="CloudNative Days Winter 2026"></a>
+      <p>OSS Showcase に出しているデモです</p>
+    </header>
+
+    <main>
+    <section class="intro">
+      <h1><span>遠くの Fedora の OS を、</span><span>ここから入れ替える</span></h1>
+      <p>このページは、会場の Kubernetes にデプロイしたデモアプリです。デモアプリは Skupper のリンクを通って、離れた場所で image mode の Fedora として動く VM に、切り替えを伝えます。Fedora は OS のイメージを入れ替えて再起動し、別のバージョンになって戻ってきます。</p>
+    </section>
+
+    <section class="show" aria-label="切り替えの操作と、いまの様子">
+      <p class="sim-note" id="sim-note" hidden>見た目を確かめるためのシミュレーションです。実機には繋がっていません。</p>
+      <p class="headline" id="headline" role="status" aria-live="polite">状態を確かめています</p>
+
+      <div class="stage" id="stage" data-phase="loading">
+        <img class="cat cat-venue" src="assets/suu-reach-rev.webp" width="560" height="372" alt="スー">
+        <div class="wire">
+          <span class="wire-half" id="wire-a"></span><span class="wire-half" id="wire-b"></span>
+          <span class="wire-label is-a">Skupper のリンク<br>会場から外向きに接続</span>
+          <span class="wire-label is-b">Skupper のリンク<br>Fedora から外向きに接続</span>
+          <i class="packet" aria-hidden="true"></i><i class="packet" aria-hidden="true"></i><i class="packet" aria-hidden="true"></i>
+        </div>
+        <div class="hub">
+          <div class="hub-hex">ハブ</div>
+          <p class="hub-label" id="hub-label">ROSA 上の Skupper</p>
+          <p class="hub-sub">Red Hat OpenShift Service on AWS</p>
+        </div>
+        <img class="cat cat-remote" src="assets/toge-reach-rev.webp" width="560" height="371" alt="トゲ">
+
+        <div class="site-card site-venue">
+          <p class="site-name">会場</p>
+          <p class="site-sub">CNDW2026 の OSS Showcase の Kubernetes</p>
+          <div class="app">
+            <div class="app-head"><span class="hexmark" aria-hidden="true"></span><div><b>このデモアプリ</b><span>Kubernetes の上で動いています</span></div></div>
+            <div class="buttons" id="buttons"></div>
+            <div class="cooldown" id="cooldown" hidden><i></i></div>
+            <p class="hint" id="hint"></p>
+          </div>
+          <p class="meta">いま <b class="count" id="viewers">-</b> 人が見ています。あなたの呼び名は <b id="you">-</b> です。</p>
+        </div>
+
+        <div class="center">
+          <ol class="steps" id="steps" aria-label="切り替えの進み具合">
+            <li>切り替えを受け付ける</li>
+            <li>次に起動するイメージを設定する</li>
+            <li>再起動する</li>
+            <li>新しいイメージで起動する</li>
+          </ol>
+        </div>
+
+        <div class="site-card site-remote">
+          <p class="site-name" id="place">リモート</p>
+          <p class="site-sub">image mode の Fedora（VM）</p>
+          <div class="machine" id="machine">
+            <div class="screen" id="screen">
+              <p class="os" id="os">-</p>
+              <dl class="specs">
+                <div><dt>kernel</dt><dd id="kernel">-</dd></div>
+                <div><dt>イメージ</dt><dd id="image">-</dd></div>
+                <div><dt>起動</dt><dd id="boot">-</dd></div>
+                <div><dt>boot ID</dt><dd id="boot-id">-</dd></div>
+              </dl>
+              <div class="overlay overlay-swap" aria-hidden="true">
+                <div class="swap-row"><span class="tile tile-from" id="tile-from"></span><span class="tile tile-to" id="tile-to"></span></div>
+                <p id="swap-cap">次に起動するイメージを入れ替えています</p>
+                <p class="swap-log" id="swap-log"></p>
+              </div>
+              <div class="overlay overlay-boot" aria-hidden="true">
+                <span class="spinner"></span>
+                <p>再起動しています</p>
+                <p class="boot-time" id="boot-time">0:00</p>
+              </div>
+              <div class="overlay overlay-lost" aria-hidden="true"><p id="lost-text">状態を確かめています</p></div>
+              <div class="overlay overlay-log" id="boot-log" aria-hidden="true"></div>
+              <img class="console" id="console" alt="リモートの VM のコンソール画面">
+            </div>
+            <div class="machine-foot"><span class="power" id="power"></span><span id="machine-note">リモートから届いた値を、そのまま表示しています</span><button type="button" class="console-toggle" id="console-toggle">コンソール画面を見る</button></div>
+            <p class="console-note">コンソール画面は、VM を動かしている Mac が撮った本物の画面です。Skupper のリンクを通して中継しています。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="live">
+        <div class="box">
+          <h3>みんなの画面で起きていること</h3>
+          <ol class="feed" id="feed"><li class="none">まだ何も起きていません。</li></ol>
+        </div>
+        <div class="box">
+          <h3>リモートの脈</h3>
+          <svg class="pulse" id="pulse" viewBox="0 0 900 120" preserveAspectRatio="none" role="img" aria-label="デモアプリからリモートまでの往復時間の推移"></svg>
+          <p class="pulse-note" id="pulse-note">デモアプリからリモートの Fedora まで、1 秒に 1 回、往復しています。</p>
+        </div>
+      </div>
+
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+    </section>
+
+    <section class="section">
+      <h2>何が起きているか</h2>
+      <ol class="sequence">
+        <li>ボタンを押すと、要求がデモアプリに届きます。デモアプリは、会場の Kubernetes の上で動いています。</li>
+        <li>デモアプリは、Skupper のリンクを通して要求を送ります。要求は ROSA の上のハブを経由して、リモートの Fedora に届きます。</li>
+        <li>Fedora は、次に起動する OS のイメージを入れ替えて再起動します。</li>
+        <li>戻ってきた Fedora は、別のバージョンの OS と kernel で動いています。</li>
+      </ol>
+    </section>
+
+    <section class="section" id="proof">
+      <h2>本当に切り替わっているかを確かめる</h2>
+      <p class="lede">画面の表示だけでは、遠くのマシンで本当に起きているのか分かりません。そこで、リモートの Fedora で実行したコマンドの出力を、手を加えずに載せています。上の「リモートの脈」が再起動の間だけ途切れるのも、本当に止まっているからです。</p>
+      <div class="proof">
+        <div>
+          <h3>起動の履歴</h3>
+          <ol class="boots" id="boots"><li>取得しています。</li></ol>
+          <p class="raw-note">boot ID は、起動のたびに kernel が新しく作る値です。値が変わっていれば、そのマシンは本当に再起動しています。</p>
+        </div>
+        <div>
+          <h3>リモートで実行したコマンドの出力</h3>
+          <div class="raw" id="raw"><p>取得しています。</p></div>
+          <p class="raw-note" id="raw-note"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Skupper とは</h2>
+      <div class="explain">
+        <div>
+          <img class="face" src="assets/suu-face-2.webp" width="200" height="173" alt="">
+          <p>Skupper は、離れた場所で動くサービス同士を安全につなぐ OSS です。Kubernetes のクラスタ、VM、手元のマシンなど、場所の違うアプリケーションを、同じネットワークにいるかのように通信させます。</p>
+          <ul class="points">
+            <li><b>VAN という、サービス単位のネットワークを作る</b>Skupper がつくるネットワークを VAN（Virtual Application Network）と呼びます。VPN がネットワークを丸ごとつなぐのに対して、VAN はつなぐと決めたサービスだけを通します。アプリケーションは、相手がどの場所にあるかを知らなくても、名前で呼べます。</li>
+            <li><b>外向きの接続だけでつながる</b>VPN や特別なファイアウォールの設定は要りません。それぞれの場所から、外向きの接続を 1 本張るだけです。この接続を「リンク」と呼びます。NAT の内側にあるマシンも参加できます。</li>
+            <li><b>サービスを公開しなくてよい</b>通信は相互 TLS で守られます。つないだサービスを、インターネットに公開する必要がありません。</li>
+            <li><b>場所を選ばない</b>Kubernetes のほか、Podman、Docker、Linux のホストでも動きます。</li>
+          </ul>
+          <p class="note">Red Hat Service Interconnect は、Skupper をもとにした製品です。</p>
+        </div>
+        <figure class="dia">
+          <div class="dia-row">
+            <div class="d-site">
+              <p class="d-name">サイト A<span>Kubernetes</span></p>
+              <div class="d-node is-app">アプリ</div>
+              <div class="d-node">入口<span>Listener</span></div>
+              <div class="d-router">ルータ</div>
+            </div>
+            <div class="d-link"><span>リンク</span></div>
+            <div class="d-site">
+              <p class="d-name">サイト B<span>別のクラウド</span></p>
+              <div class="d-node is-ghost" aria-hidden="true">-</div>
+              <div class="d-node is-ghost" aria-hidden="true">-<span>-</span></div>
+              <div class="d-router">ルータ</div>
+            </div>
+            <div class="d-link"><span>リンク</span></div>
+            <div class="d-site is-nat">
+              <p class="d-name">サイト C<span>NAT の内側</span></p>
+              <div class="d-node is-app">サービス</div>
+              <div class="d-node">出口<span>Connector</span></div>
+              <div class="d-router">ルータ</div>
+            </div>
+          </div>
+          <div class="d-van"></div>
+          <p class="d-van-label">ここまでが 1 つの VAN</p>
+          <div class="d-compare">
+            <div><b>VPN でつなぐと</b><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>ネットワークごとつながり、相手側のすべてに届くようになります。</div>
+            <div><b>VAN でつなぐと</b><span class="dots"><i></i><i></i><i class="on"></i><i></i><i></i><i></i></span>入口と出口を作ったサービスだけがつながります。</div>
+          </div>
+          <figcaption>サイトごとにルータが 1 つ動き、ルータ同士をリンクが結びます。アプリは入口を呼ぶだけで、要求はリンクを伝って、出口の先のサービスに届きます。このデモでは、サイト A が会場のデモアプリ、サイト B が ROSA、サイト C がリモートの Fedora です。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>image mode とは</h2>
+      <div class="explain">
+        <div>
+          <img class="face" src="assets/toge-face-2.webp" width="200" height="173" alt="">
+          <p>image mode は、OS をコンテナイメージとして作り、配り、更新するやり方です。アプリケーションのコンテナと同じように、Containerfile に OS の中身を書いてビルドし、そのイメージからマシンを起動します。</p>
+          <ul class="points">
+            <li><b>OS を丸ごと入れ替える</b>更新はパッケージを 1 つずつではなく、イメージの単位で行います。途中で止まっても、中途半端な状態にはなりません。</li>
+            <li><b>すぐに戻せる</b>1 つ前のイメージがマシンに残ります。問題があれば、再起動 1 回で元に戻せます。</li>
+            <li><b>コンテナと同じ道具で扱える</b>ビルドも配布も検査も、コンテナで使い慣れた道具と流れをそのまま使えます。</li>
+          </ul>
+          <p class="note">中心にあるのは bootc という OSS で、Fedora、CentOS Stream、RHEL で使えます。</p>
+        </div>
+        <figure class="dia">
+          <div class="d-flow">
+            <div class="d-step">
+              <b>Containerfile を書く</b>
+              <div class="d-file">FROM fedora-bootc:45<br>RUN dnf -y install …<br>COPY agent.py /usr/…</div>
+            </div>
+            <div class="d-arrow"></div>
+            <div class="d-step">
+              <b>OS のイメージができる</b>
+              <div class="d-layers"><i>Fedora 45 の本体</i><i>追加したパッケージ</i><i>自分のファイル</i></div>
+            </div>
+            <div class="d-arrow"></div>
+            <div class="d-step">
+              <b>マシンが、そこから起動する</b>
+              <div class="d-disk">
+                <div class="d-slot is-live">Fedora 45<span>いま起動している</span></div>
+                <p class="d-swap">切り替え ⇅ 戻す</p>
+                <div class="d-slot">Fedora 44<span>1 つ前として残る</span></div>
+              </div>
+            </div>
+          </div>
+          <figcaption>マシンには、いま起動しているイメージと 1 つ前のイメージが並んで置かれます。切り替えは「次にどちらから起動するか」を変えるだけなので、再起動すれば入れ替わり、もう一度やれば戻ります。このデモは、この入れ替えをボタンで行っています。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>このデモのしくみ</h2>
+      <div class="mech">
+        <div>
+          <h3>デモアプリとリモートを、Skupper がつなぐ</h3>
+          <p>リモートの Fedora は、切り替えを受ける API をインターネットに公開していません。Fedora もデモアプリのいる Kubernetes も、ROSA の上のハブに向かって外向きに接続しているだけです。デモアプリは、Skupper が用意した入口に向けて、同じクラスタの中のサービスを呼ぶのと同じように要求を送ります。</p>
+        </div>
+    <pre class="code"><span class="c"># デモアプリの隣に、入口を作る</span>
+    kind: Listener
+    spec:
+      routingKey: bootc-agent
+      host: bootc-agent
+      port: 8088
+
+    <span class="c"># リモートの Fedora で、手元の API を出口につなぐ</span>
+    kind: Connector
+    spec:
+      routingKey: bootc-agent
+      host: 127.0.0.1
+      port: 8088</pre>
+      </div>
+      <div class="mech">
+        <div>
+          <h3>Fedora は、起動するイメージを入れ替える</h3>
+          <p>リモートの Fedora には、2 つの OS イメージを用意してあります。はじめての切り替えでは、次に起動するイメージを差し替えます。それまでのイメージは 1 つ前として残るので、戻すときは取得し直さずに、起動する順番を入れ替えるだけで済みます。</p>
+        </div>
+    <pre class="code"><span class="c"># はじめて切り替えるとき</span>
+    bootc switch localhost/skupper-bootc-demo:f45
+
+    <span class="c"># 1 つ前に戻すとき</span>
+    bootc rollback
+
+    <span class="c"># どちらも、再起動すると切り替わる</span>
+    systemctl reboot</pre>
+      </div>
+      <div class="mech">
+        <div>
+          <h3>大勢で見ても、同じ画面になる</h3>
+          <p>リモートへの問い合わせは、見ている人数に関係なく、デモアプリが 1 秒に 1 回だけ行います。その結果を全員に配るので、誰の画面でも同じ進み具合が出ます。切り替えの要求は、デモアプリが 1 つずつ取り次ぎます。同時に押された場合は、先に届いた 1 つだけが進みます。</p>
+        </div>
+        <dl class="limits">
+          <dt>切り替え先</dt><dd id="limit-targets">-</dd>
+          <dt>待ち時間</dt><dd id="limit-cooldown">-</dd>
+          <dt>同時の切り替え</dt><dd>1 つだけ</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>切り替えの記録</h2>
+      <div id="records"><p>記録を取得しています。</p></div>
+    </section>
+    </main>
+
+    <footer>
+      <p>使っている OSS: <a href="https://skupper.io/">Skupper</a>、<a href="https://bootc-dev.github.io/bootc/">bootc</a>、<a href="https://docs.fedoraproject.org/en-US/bootc/">Fedora bootc</a></p>
+      <img src="assets/toge-face.webp" width="200" height="173" alt="">
+    </footer>
+
+    </div>
+    <script>
+    const $ = (id) => document.getElementById(id);
+    const clock = (epoch) => new Date(epoch * 1000).toLocaleTimeString('ja-JP', { hour12: false });
+    const span = (sec) => {
+      sec = Math.max(0, Math.round(sec));
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+      return h ? `${h} 時間 ${m} 分` : m ? `${m} 分 ${s} 秒` : `${s} 秒`;
+    };
+    const mmss = (sec) => `${Math.floor(Math.max(0, sec) / 60)}:${String(Math.floor(Math.max(0, sec) % 60)).padStart(2, '0')}`;
+    const el = (tag, className, text) => {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    };
+
+    // 呼び名の並びは、デモアプリ（app/server.py）と揃えること
+    const ADJECTIVES = ['すばやい', 'のんびり', 'まじめな', 'ねむたい', 'げんきな', 'しずかな', 'おしゃれな', 'くいしんぼうの'];
+    const CATS = ['三毛猫', '黒猫', '白猫', '茶トラ', 'サバトラ', 'ハチワレ', 'キジトラ', 'サビ猫'];
+    function clientId() {
+      let id = '';
+      try { id = localStorage.getItem('viewer') || ''; } catch (e) {}
+      if (!/^[0-9a-f]{8}$/.test(id)) {
+        id = [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, '0')).join('');
+        try { localStorage.setItem('viewer', id); } catch (e) {}
+      }
+      return id;
+    }
+    const ME = clientId();
+    const MY_NAME = ADJECTIVES[parseInt(ME.slice(0, 4), 16) % ADJECTIVES.length] + CATS[(parseInt(ME.slice(0, 4), 16) >> 3) % CATS.length];
+    $('you').textContent = MY_NAME;
+
+    // st はデモアプリから届いた最新の状態。全員が同じものを受け取る
+    const view = {
+      st: null, offset: 0, appDown: false, posting: false, notice: '', headline: '',
+      seenRun: null, cheeredRun: null, replayedBoot: undefined, feedTop: 0, evidenceBoot: undefined, bootsKey: '',
+      consoleEtag: '', consolePinned: false, consoleUntil: 0,
+    };
+    let timer = null;
+    const serverNow = () => Date.now() / 1000 + view.offset;
+    const labelOf = (id) => (((view.st || {}).remote || {}).targets || []).find((t) => t.id === id)?.label || '別のイメージ';
+
+    async function poll() {
+      clearTimeout(timer);
+      const abort = new AbortController();
+      const limit = setTimeout(() => abort.abort(), 4000);
+      try {
+        const res = await fetch(`api/state?c=${ME}`, { cache: 'no-store', signal: abort.signal });
+        if (!res.ok) throw new Error(String(res.status));
+        const st = await res.json();
+        view.offset = st.now - Date.now() / 1000;
+        view.st = st;
+        view.appDown = false;
+      } catch (e) {
+        view.appDown = true;
+      } finally {
+        clearTimeout(limit);
+      }
+      render();
+      timer = setTimeout(poll, 1000);
+    }
+
+    async function requestSwitch(id) {
+      view.posting = true;
+      view.notice = '';
+      render();
+      try {
+        const res = await fetch('api/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: id, c: ME }),
+        });
+        if (res.status !== 202) {
+          const body = await res.json().catch(() => ({}));
+          view.notice = {
+            busy: 'ほかの人が、ひと足先に切り替えを始めました。',
+            cooldown: 'まだ待ち時間です。',
+            already_current: 'すでにそのイメージで動いています。',
+            unknown_target: 'その切り替え先は使えません。',
+            unreachable: 'リモートに届かないため、切り替えを始められませんでした。',
+          }[body.error] || '切り替えを始められませんでした。';
+        }
+      } catch (e) {
+        view.notice = '要求を送れませんでした。もう一度試してください。';
+      }
+      view.posting = false;
+      poll();
+    }
+
+    function celebrate() {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const box = $('confetti');
+      const colors = ['#216a9c', '#be4493', '#e99411'];
+      const pieces = [];
+      for (let i = 0; i < 110; i++) {
+        const piece = document.createElement('i');
+        piece.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % 3]};` +
+          `--dx:${(Math.random() - .5) * 14}rem;--dy:${box.clientHeight * (.5 + Math.random() * .5)}px;--rot:${(Math.random() - .5) * 1080}deg;` +
+          `animation-duration:${1.6 + Math.random() * 1.8}s;animation-delay:${Math.random() * .6}s;` +
+          (i % 3 === 0 ? 'clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);width:.9rem;height:1.04rem;' : 'border-radius:.15rem;');
+        pieces.push(piece);
+      }
+      box.replaceChildren(...pieces);
+      setTimeout(() => box.replaceChildren(), 4500);
+    }
+
+    // 戻ってきた直後に、リモートから取ってきた本物の起動ログを画面に流す
+    function replayBootLog(lines) {
+      const stage = $('stage'), box = $('boot-log');
+      if (!lines.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      box.replaceChildren(el('p', 'log-cap', 'リモートから取得した、この起動のログ'));
+      stage.classList.add('is-replaying');
+      const shown = lines.slice(0, 26);
+      shown.forEach((line, i) => setTimeout(() => {
+        box.append(el('p', '', line));
+        while (box.children.length > 9) box.children[1].remove();
+      }, 180 * i));
+      setTimeout(() => stage.classList.remove('is-replaying'), 180 * shown.length + 2200);
+    }
+
+    async function loadEvidence(boot, replay) {
+      let evidence;
+      try {
+        const res = await fetch('api/evidence', { cache: 'no-store' });
+        if (!res.ok) throw new Error(String(res.status));
+        evidence = await res.json();
+      } catch (e) {
+        view.evidenceBoot = view.evidenceBoot === boot ? null : view.evidenceBoot;   // 次の更新でもう一度取りにいく
+        return;
+      }
+      const raw = $('raw');
+      if (evidence.commands.length) {
+        raw.replaceChildren(...evidence.commands.flatMap((item) => [el('p', 'cmd', `$ ${item.command}`), el('pre', '', item.output)]));
+        $('raw-note').textContent = `${clock(evidence.collected_at)} に、リモートの Fedora の中で実行した結果です。再起動のたびに取り直します。`;
+      }
+      if (replay) replayBootLog(evidence.boot_log || []);
+    }
+
+    function renderStage(st, ph) {
+      const stage = $('stage');
+      stage.dataset.phase = ph;
+      const remote = st.remote, up = st.reachable;
+      // 再起動中に切れているのは Fedora 側のリンクだけ。理由が分からず届かないときは、両方を切れた表示にする
+      const downA = !up && ph !== 'offline', downB = !up;
+      $('wire-a').classList.toggle('is-down', downA);
+      $('wire-b').classList.toggle('is-down', downB);
+      stage.classList.toggle('is-down-a', downA);
+      stage.classList.toggle('is-down-b', downB);
+      $('viewers').textContent = st.viewers;
+      if (st.place) $('place').textContent = st.place;
+      if (st.hub_label) $('hub-label').textContent = st.hub_label;
+      $('power').className = 'power' + (ph === 'offline' || ph === 'staging' || ph === 'rebooting' ? ' is-busy' : up ? ' is-on' : '');
+      $('lost-text').textContent = ph === 'loading' ? '状態を確かめています' : '応答がありません';
+      if (!remote) return;
+
+      $('os').textContent = remote.booted.os || 'Fedora';
+      $('kernel').textContent = remote.booted.kernel || '-';
+      $('image').textContent = remote.booted.image || '-';
+      $('boot').textContent = `${clock(remote.booted.boot_time)} から ${span(serverNow() - remote.booted.boot_time)}`;
+      $('boot-id').textContent = remote.booted.boot_id ? remote.booted.boot_id.replace(/-/g, '').slice(0, 12) : '-';
+
+      const run = st.run;
+      if (run) {
+        $('tile-from').textContent = labelOf(run.from);
+        $('tile-to').textContent = labelOf(run.target);
+        $('boot-time').textContent = mmss(serverNow() - (run.t_offline || st.phase_since));
+      }
+      $('swap-cap').textContent = ph === 'rebooting' ? 'まもなく再起動します' : '次に起動するイメージを入れ替えています';
+      const log = (remote.switch && remote.switch.log) || [];
+      $('swap-log').textContent = log.length ? log[log.length - 1] : '';
+
+      // 切り替えが始まった瞬間と終わった瞬間は、見ている全員の画面で 1 回だけ動かす
+      if (run && run.id !== view.seenRun && (ph === 'staging' || ph === 'rebooting')) {
+        view.seenRun = run.id;
+        stage.classList.remove('is-sending');
+        void stage.offsetWidth;
+        stage.classList.add('is-sending');
+        setTimeout(() => stage.classList.remove('is-sending'), 2200);
+      }
+      if (view.cheeredRun === null) {
+        // ページを開いた時点ですでに終わっていた切り替えでは、紙吹雪を出さない
+        if (ph !== 'loading') view.cheeredRun = run && run.result ? run.id : 0;
+      } else if (run && ph === 'arrived' && run.id !== view.cheeredRun) {
+        view.cheeredRun = run.id;
+        celebrate();
+      }
+
+      // 生の出力は、起動が変わるたびに取り直す。切り替え直後なら起動ログも流す
+      if (st.evidence_boot && st.evidence_boot !== view.evidenceBoot) {
+        const first = view.evidenceBoot === undefined;
+        view.evidenceBoot = st.evidence_boot;
+        loadEvidence(st.evidence_boot, !first && ph === 'arrived');
+      }
+    }
+
+    // 本物のコンソール画面。切り替えの間と、戻ってきてからしばらくは自動で出す。ボタンで出しっぱなしにもできる
+    function renderConsole(st, ph) {
+      const live = Boolean(st.console);
+      $('machine').classList.toggle('has-console', live);
+      if (ph === 'rebooting' || ph === 'offline') view.consoleUntil = Date.now() + 12000;
+      const show = live && (view.consolePinned || Date.now() < view.consoleUntil);
+      $('screen').classList.toggle('is-console', show);
+      $('console-toggle').textContent = view.consolePinned ? '情報の表示に戻す' : 'コンソール画面を見る';
+      $('machine-note').textContent = show ? 'いまのコンソール画面です' : 'リモートから届いた値を、そのまま表示しています';
+      if (live && show && st.console !== view.consoleEtag) {
+        view.consoleEtag = st.console;
+        $('console').src = `api/console.png?e=${encodeURIComponent(st.console)}`;
+      }
+    }
+    $('console-toggle').addEventListener('click', () => {
+      view.consolePinned = !view.consolePinned;
+      view.consoleUntil = 0;
+      view.consoleEtag = '';
+      if (view.st) renderConsole(view.st, view.st.phase);
+    });
+
+    function renderHeadline(st, ph) {
+      const remote = st.remote, run = st.run;
+      let text, tone = '';
+      if (view.appDown) { text = 'デモアプリに届きません'; tone = 'alert'; }
+      else if (ph === 'loading') text = '状態を確かめています';
+      else if (ph === 'lost') { text = 'リモートの Fedora に届きません'; tone = 'alert'; }
+      else if (ph === 'staging') { text = `${labelOf(run && run.target)} に切り替える準備をしています`; tone = 'busy'; }
+      else if (ph === 'rebooting') { text = 'まもなく再起動します'; tone = 'busy'; }
+      else if (ph === 'offline') { text = `リモートの Fedora が再起動しています ${mmss(serverNow() - (run && run.t_offline || st.phase_since))}`; tone = 'busy'; }
+      else if (ph === 'arrived') text = `${labelOf(run.target)} で起動しました。${span(run.duration_sec)}かかりました`;
+      else text = `リモートの Fedora は、${labelOf(remote.booted.target)} で動いています`;
+      const node = $('headline');
+      node.textContent = text;
+      node.dataset.tone = tone;
+      const key = ph === 'offline' ? 'offline' : text;   // 経過時間の更新では動かさない
+      if (key !== view.headline) {
+        view.headline = key;
+        node.classList.remove('is-fresh');
+        void node.offsetWidth;
+        node.classList.add('is-fresh');
+      }
+    }
+
+    function renderControls(st, ph) {
+      const remote = st.remote;
+      const box = $('buttons');
+      const others = remote ? remote.targets.filter((t) => t.id !== remote.booted.target) : [];
+      const key = others.map((t) => t.id).join(',');
+      if (box.dataset.key !== key) {
+        box.dataset.key = key;
+        box.replaceChildren(...others.map((target) => {
+          const button = el('button', 'switch-btn', `${target.label} に切り替える`);
+          button.type = 'button';
+          button.addEventListener('click', () => requestSwitch(target.id));
+          return button;
+        }));
+      }
+      const wait = st.cooldown_remaining_sec - (serverNow() - st.now);
+      const ready = (ph === 'idle' || ph === 'arrived') && wait <= 0 && !view.posting && !view.appDown;
+      for (const button of box.children) button.disabled = !ready;
+
+      const bar = $('cooldown');
+      const cooling = remote && wait > 0 && (ph === 'idle' || ph === 'arrived');
+      bar.hidden = !cooling;
+      if (cooling) bar.firstElementChild.style.width = `${Math.min(100, (wait / remote.cooldown_sec) * 100)}%`;
+
+      let hint = '';
+      if (view.notice) hint = view.notice;
+      else if (view.appDown) hint = '通信が戻るのを待っています。';
+      else if (ph === 'loading') hint = 'リモートの状態を確かめています。';
+      else if (ph === 'lost') hint = '再起動の途中か、リンクが切れています。戻るまで待っています。';
+      else if (ph === 'staging' || ph === 'rebooting' || ph === 'offline') {
+        const who = st.run && st.run.by ? (st.run.by === MY_NAME ? 'あなた' : `${st.run.by} さん`) : '誰か';
+        hint = `${who}が始めた切り替えです。終わるまで、全員のボタンが止まります。`;
+      }
+      else if (wait > 0) hint = `次の切り替えまで ${mmss(wait)}。再起動が続かないようにするための待ち時間です。`;
+      else if (others.length) hint = '押すと、リモートの Fedora が OS を入れ替えて再起動します。見ている全員の画面が一緒に動きます。';
+      $('hint').textContent = hint;
+    }
+
+    function renderSteps(ph) {
+      const now = view.posting ? 1 : { staging: 2, rebooting: 3, offline: 3, arrived: 5 }[ph] || 0;
+      [...$('steps').children].forEach((li, i) => {
+        li.classList.toggle('is-done', i + 1 < now);
+        li.classList.toggle('is-now', i + 1 === now);
+        if (i + 1 === now) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+      });
+    }
+
+    function renderFeed(st) {
+      const top = st.events.length ? st.events[0].t : 0;
+      if (top === view.feedTop) return;
+      const fresh = view.feedTop;
+      view.feedTop = top;
+      if (!st.events.length) return;
+      $('feed').replaceChildren(...st.events.slice(0, 5).map((event) => {
+        const li = el('li', fresh && event.t > fresh ? 'is-new' : '');
+        li.append(el('time', '', clock(event.t)), el('span', '', event.text));
+        return li;
+      }));
+    }
+
+    // 往復時間を心電図のように描く。届かなかった回は、線を切って下に赤い印を置く
+    function renderPulse(st) {
+      const beats = st.beats || [];
+      const width = 900, height = 120, slots = 90, step = width / (slots - 1);
+      const peak = Math.max(40, ...beats.filter((b) => b != null));
+      const y = (ms) => height - 14 - (ms / peak) * (height - 34);
+      let path = '', misses = '', pen = false;
+      beats.forEach((ms, i) => {
+        const x = (slots - beats.length + i) * step;
+        if (ms == null) {
+          pen = false;
+          misses += `<rect x="${(x - step / 2).toFixed(1)}" y="${height - 9}" width="${step.toFixed(1)}" height="5" fill="#ff6b5e"/>`;
+          return;
+        }
+        // 1 回の往復を、基線から跳ねて戻る山として描く
+        const base = height - 14;
+        path += `${pen ? 'L' : 'M'}${(x - step * .35).toFixed(1)} ${base} L${x.toFixed(1)} ${y(ms).toFixed(1)} L${(x + step * .35).toFixed(1)} ${base} `;
+        pen = true;
+      });
+      $('pulse').innerHTML = `<path d="${path}" fill="none" stroke="#ffd27a" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>${misses}`;
+      const last = beats.length ? beats[beats.length - 1] : undefined;
+      const lost = beats.filter((b) => b == null).length;
+      $('pulse-note').innerHTML = last == null
+        ? '<b>いま、応答がありません。</b>赤い印は、往復が返ってこなかった時間です。'
+        : `デモアプリからリモートの Fedora まで、Skupper のリンクを通って <b>${last} ミリ秒</b>で往復しました。直近 ${beats.length} 回のうち、返ってこなかったのは ${lost} 回です。`;
+    }
+
+    function renderBoots(st) {
+      const boots = st.boots || [];
+      const key = boots.map((b) => b.boot_id).join(',');
+      if (key === view.bootsKey || !boots.length) return;
+      view.bootsKey = key;
+      $('boots').replaceChildren(...boots.map((boot, i) => {
+        const li = el('li');
+        li.append(
+          el('p', 'when', `${clock(boot.boot_time)} に起動${i === 0 ? '（いまの起動）' : ''}`),
+          el('p', 'what', `${boot.os || ''} / kernel ${boot.kernel || ''}`),
+        );
+        const id = el('p');
+        id.append('boot ID ', el('code', '', boot.boot_id));
+        li.append(id);
+        return li;
+      }));
+    }
+
+    function renderRecords(remote) {
+      const box = $('records');
+      const key = remote.history.map((r) => r.finished_at).join(',') || 'none';
+      if (box.dataset.key === key) return;
+      box.dataset.key = key;
+      if (!remote.history.length) {
+        box.replaceChildren(el('p', '', 'まだ記録がありません。上のボタンで切り替えると、ここに残ります。'));
+        return;
+      }
+      const table = el('table', 'records');
+      table.innerHTML = '<thead><tr><th>時刻</th><th>切り替え</th><th>かかった時間</th><th>結果</th></tr></thead>';
+      const body = table.createTBody();
+      for (const record of remote.history.slice(0, 10)) {
+        const row = body.insertRow();
+        row.insertCell().textContent = clock(record.finished_at);
+        row.insertCell().textContent = `${labelOf(record.from)} から ${labelOf(record.to)}`;
+        row.insertCell().textContent = span(record.duration_sec);
+        row.insertCell().textContent = record.result === 'ok' ? '成功' : `失敗: ${record.error || ''}`;
+      }
+      box.replaceChildren(table);
+    }
+
+    function render() {
+      const st = view.st;
+      if (!st) {
+        $('headline').textContent = view.appDown ? 'デモアプリに届きません' : '状態を確かめています';
+        return;
+      }
+      const ph = st.phase;
+      $('sim-note').hidden = !(st.remote && st.remote.simulated);
+      renderStage(st, ph);
+      renderConsole(st, ph);
+      renderHeadline(st, ph);
+      renderControls(st, ph);
+      renderSteps(ph);
+      renderFeed(st);
+      renderPulse(st);
+      renderBoots(st);
+      if (st.remote) {
+        $('limit-targets').textContent = st.remote.targets.map((t) => t.label).join('、');
+        $('limit-cooldown').textContent = `切り替えのあと ${span(st.remote.cooldown_sec)}`;
+        renderRecords(st.remote);
+      }
+    }
+
+    poll();
+    setInterval(render, 1000);
+    </script>
+    </body>
+    </html>

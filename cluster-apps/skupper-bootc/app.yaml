@@ -1,0 +1,104 @@
+# デモアプリ。画面を配り、Skupper の入口（bootc-agent）を通してリモートの Fedora と話す。
+# コードと画面は ConfigMap から読む（configmap-app.yaml、configmap-assets.yaml）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skupper-bootc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: skupper-bootc
+  template:
+    metadata:
+      labels:
+        app: skupper-bootc
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: docker.io/library/python:3.13-alpine
+          command: ["python", "/app/server.py"]
+          env:
+            - name: STATIC_DIR
+              value: /app/static
+            # Skupper の Listener が作る Service
+            - name: AGENT_URL
+              value: http://bootc-agent:8088
+            # リモートの VM のコンソール画面。これも Skupper の Listener が作る Service。
+            # 中継する側が繋がっていない間は取れないだけで、画面はコンソールなしで動く
+            - name: CONSOLE_URL
+              value: http://console-relay:8099/frame.png
+            - name: REMOTE_PLACE
+              value: 佐倉の某宅
+            - name: HUB_LABEL
+              value: ROSA 上の Skupper
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: code
+              mountPath: /app/server.py
+              subPath: server.py
+            - name: code
+              mountPath: /app/static/index.html
+              subPath: index.html
+            - name: assets
+              mountPath: /app/static/assets
+      volumes:
+        - name: code
+          configMap:
+            name: skupper-bootc-app
+        - name: assets
+          configMap:
+            name: skupper-bootc-assets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skupper-bootc
+spec:
+  selector:
+    app: skupper-bootc
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: skupper-bootc
+spec:
+  parentRefs:
+    - name: showcase
+      namespace: gateway
+  hostnames:
+    - skupper-bootc.showcase.cloudnativedays.jp
+  rules:
+    - backendRefs:
+        - name: skupper-bootc
+          port: 80
