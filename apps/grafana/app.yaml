@@ -87,7 +87,7 @@
 #             "panels": [
 #               {
 #                 "type": "row",
-#                 "title": "キーノート（資料とコメント）",
+#                 "title": "ノード",
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
@@ -96,565 +96,6 @@
 #                   "h": 1
 #                 },
 #                 "id": 1
-#               },
-#               {
-#                 "type": "stat",
-#                 "title": "この期間のリクエスト",
-#                 "description": "画面の期間に、資料とコメントに来たリクエストの数",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "decimals": 0,
-#                     "color": {
-#                       "mode": "fixed",
-#                       "fixedColor": "#e4007f"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "colorMode": "background",
-#                   "graphMode": "area",
-#                   "textMode": "value_and_name",
-#                   "justifyMode": "center",
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "sum by (app) (label_replace(increase(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[$__range]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
-#                     "instant": false,
-#                     "legendFormat": "{{app}}"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 0,
-#                   "y": 1,
-#                   "w": 6,
-#                   "h": 7
-#                 },
-#                 "id": 2
-#               },
-#               {
-#                 "type": "stat",
-#                 "title": "いちばん混んだ瞬間（回/秒）",
-#                 "description": "画面の期間で、1 秒あたりのリクエストがいちばん多かったとき",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "decimals": 0,
-#                     "color": {
-#                       "mode": "fixed",
-#                       "fixedColor": "#1f60c4"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "colorMode": "background",
-#                   "graphMode": "area",
-#                   "textMode": "value_and_name",
-#                   "justifyMode": "center",
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "max_over_time((sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))[$__range:15s])",
-#                     "instant": false,
-#                     "legendFormat": "{{app}}"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 6,
-#                   "y": 1,
-#                   "w": 6,
-#                   "h": 7
-#                 },
-#                 "id": 3
-#               },
-#               {
-#                 "type": "timeseries",
-#                 "title": "リクエスト（回/秒）",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "reqps",
-#                     "custom": {
-#                       "fillOpacity": 15,
-#                       "lineWidth": 2,
-#                       "stacking": {
-#                         "mode": "none"
-#                       }
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "legend": {
-#                     "displayMode": "list",
-#                     "placement": "bottom"
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
-#                     "legendFormat": "{{app}}"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 12,
-#                   "y": 1,
-#                   "w": 12,
-#                   "h": 7
-#                 },
-#                 "id": 4
-#               },
-#               {
-#                 "type": "timeseries",
-#                 "title": "ステータスコード（回/秒）",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "reqps",
-#                     "custom": {
-#                       "fillOpacity": 40,
-#                       "lineWidth": 2,
-#                       "stacking": {
-#                         "mode": "normal"
-#                       }
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "legend": {
-#                     "displayMode": "list",
-#                     "placement": "bottom"
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "legendFormat": "{{app}} {{envoy_response_code_class}}xx",
-#                     "expr": "sum by (app, envoy_response_code_class) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 0,
-#                   "y": 8,
-#                   "w": 8,
-#                   "h": 8
-#                 },
-#                 "id": 5
-#               },
-#               {
-#                 "type": "timeseries",
-#                 "title": "応答時間（p50 と p95）",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "ms",
-#                     "custom": {
-#                       "fillOpacity": 15,
-#                       "lineWidth": 2,
-#                       "stacking": {
-#                         "mode": "none"
-#                       }
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "legend": {
-#                     "displayMode": "list",
-#                     "placement": "bottom"
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "legendFormat": "{{app}} p50",
-#                     "expr": "histogram_quantile(0.5, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
-#                   },
-#                   {
-#                     "refId": "B",
-#                     "legendFormat": "{{app}} p95",
-#                     "expr": "histogram_quantile(0.95, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 8,
-#                   "y": 8,
-#                   "w": 8,
-#                   "h": 8
-#                 },
-#                 "id": 6
-#               },
-#               {
-#                 "type": "timeseries",
-#                 "title": "処理中のリクエストと CPU",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "custom": {
-#                       "fillOpacity": 15,
-#                       "lineWidth": 2,
-#                       "stacking": {
-#                         "mode": "none"
-#                       }
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "legend": {
-#                     "displayMode": "list",
-#                     "placement": "bottom"
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "legendFormat": "{{app}} 処理中",
-#                     "expr": "sum by (app) (label_replace(envoy_cluster_upstream_rq_active{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}, \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
-#                   },
-#                   {
-#                     "refId": "B",
-#                     "legendFormat": "{{app}} CPU（コア）",
-#                     "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}[1m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 16,
-#                   "y": 8,
-#                   "w": 8,
-#                   "h": 8
-#                 },
-#                 "id": 7
-#               },
-#               {
-#                 "type": "row",
-#                 "title": "防いだ攻撃（この 24 時間）",
-#                 "collapsed": false,
-#                 "gridPos": {
-#                   "x": 0,
-#                   "y": 16,
-#                   "w": 24,
-#                   "h": 1
-#                 },
-#                 "id": 8
-#               },
-#               {
-#                 "type": "stat",
-#                 "title": "API サーバで門前払い",
-#                 "description": "ValidatingAdmissionPolicy と Pod Security が拒否した YAML の数",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "decimals": 0,
-#                     "color": {
-#                       "mode": "fixed",
-#                       "fixedColor": "#e02f44"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "colorMode": "background",
-#                   "graphMode": "area",
-#                   "textMode": "value",
-#                   "justifyMode": "center",
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "(sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) or vector(0)) + (sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) or vector(0))",
-#                     "instant": false
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 0,
-#                   "y": 17,
-#                   "w": 6,
-#                   "h": 7
-#                 },
-#                 "id": 9
-#               },
-#               {
-#                 "type": "stat",
-#                 "title": "NetworkPolicy で落とした通信",
-#                 "description": "CiliumNetworkPolicy が落としたパケットの数",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "decimals": 0,
-#                     "color": {
-#                       "mode": "fixed",
-#                       "fixedColor": "#8f3bb8"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "colorMode": "background",
-#                   "graphMode": "area",
-#                   "textMode": "value",
-#                   "justifyMode": "center",
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "(sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1d])) or vector(0))",
-#                     "instant": false
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 6,
-#                   "y": 17,
-#                   "w": 6,
-#                   "h": 7
-#                 },
-#                 "id": 10
-#               },
-#               {
-#                 "type": "stat",
-#                 "title": "user namespace を阻止",
-#                 "description": "Tetragon が user namespace を作ろうとしたプロセスを止めた回数",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "decimals": 0,
-#                     "color": {
-#                       "mode": "fixed",
-#                       "fixedColor": "#ff7383"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "colorMode": "background",
-#                   "graphMode": "area",
-#                   "textMode": "value",
-#                   "justifyMode": "center",
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "(sum(increase(tetragon_policy_events_total[1d])) or vector(0))",
-#                     "instant": false
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 12,
-#                   "y": 17,
-#                   "w": 6,
-#                   "h": 7
-#                 },
-#                 "id": 11
-#               },
-#               {
-#                 "type": "stat",
-#                 "title": "/tmp からの実行を発見",
-#                 "description": "/tmp などに置いたファイルを実行した回数。止めずに記録だけしている",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "decimals": 0,
-#                     "color": {
-#                       "mode": "fixed",
-#                       "fixedColor": "#fade2a"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "colorMode": "background",
-#                   "graphMode": "area",
-#                   "textMode": "value",
-#                   "justifyMode": "center",
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "(sum(increase(tetragon_events_total{binary=~\"/(tmp|var/tmp|dev/shm)/.*\"}[1d])) or vector(0))",
-#                     "instant": false
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 18,
-#                   "y": 17,
-#                   "w": 6,
-#                   "h": 7
-#                 },
-#                 "id": 12
-#               },
-#               {
-#                 "type": "bargauge",
-#                 "title": "当たったルール",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "min": 0,
-#                     "color": {
-#                       "mode": "fixed",
-#                       "fixedColor": "#e02f44"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "displayMode": "gradient",
-#                   "orientation": "horizontal",
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "instant": true,
-#                     "legendFormat": "{{policy}}",
-#                     "expr": "sort_desc(sum by (policy) (increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) > 0)"
-#                   },
-#                   {
-#                     "refId": "B",
-#                     "instant": true,
-#                     "legendFormat": "Pod Security",
-#                     "expr": "sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) > 0"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 0,
-#                   "y": 24,
-#                   "w": 10,
-#                   "h": 8
-#                 },
-#                 "id": 13
-#               },
-#               {
-#                 "type": "timeseries",
-#                 "title": "攻撃のタイムライン（1 分ごと）",
-#                 "datasource": {
-#                   "type": "prometheus",
-#                   "uid": "prometheus"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "unit": "short",
-#                     "custom": {
-#                       "fillOpacity": 15,
-#                       "lineWidth": 2,
-#                       "stacking": {
-#                         "mode": "none"
-#                       },
-#                       "drawStyle": "bars"
-#                     }
-#                   }
-#                 },
-#                 "options": {
-#                   "legend": {
-#                     "displayMode": "list",
-#                     "placement": "bottom"
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "expr": "sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1m])) + sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1m]))",
-#                     "legendFormat": "門前払い"
-#                   },
-#                   {
-#                     "refId": "B",
-#                     "expr": "sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1m]))",
-#                     "legendFormat": "落とした通信"
-#                   },
-#                   {
-#                     "refId": "C",
-#                     "expr": "sum(increase(tetragon_policy_events_total[1m]))",
-#                     "legendFormat": "user namespace"
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 10,
-#                   "y": 24,
-#                   "w": 14,
-#                   "h": 8
-#                 },
-#                 "id": 14
-#               },
-#               {
-#                 "type": "row",
-#                 "title": "ノード全体",
-#                 "collapsed": false,
-#                 "gridPos": {
-#                   "x": 0,
-#                   "y": 32,
-#                   "w": 24,
-#                   "h": 1
-#                 },
-#                 "id": 15
 #               },
 #               {
 #                 "type": "gauge",
@@ -705,11 +146,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 33,
+#                   "y": 1,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 16
+#                 "id": 2
 #               },
 #               {
 #                 "type": "gauge",
@@ -760,11 +201,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 4,
-#                   "y": 33,
+#                   "y": 1,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 17
+#                 "id": 3
 #               },
 #               {
 #                 "type": "gauge",
@@ -815,16 +256,16 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 33,
+#                   "y": 1,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 18
+#                 "id": 4
 #               },
 #               {
 #                 "type": "gauge",
-#                 "title": "PVC の置き場",
-#                 "description": "PVC を置くループデバイスの使用率。全部のアプリで分け合う",
+#                 "title": "PVC",
+#                 "description": "PVC の使用率",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -870,15 +311,16 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 33,
+#                   "y": 1,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 19
+#                 "id": 5
 #               },
 #               {
 #                 "type": "timeseries",
 #                 "title": "CPU とメモリの使用率",
+#                 "description": "",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -887,7 +329,7 @@
 #                   "defaults": {
 #                     "unit": "percentunit",
 #                     "custom": {
-#                       "fillOpacity": 15,
+#                       "fillOpacity": 10,
 #                       "lineWidth": 2,
 #                       "stacking": {
 #                         "mode": "none"
@@ -915,27 +357,27 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 33,
+#                   "y": 1,
 #                   "w": 8,
 #                   "h": 7
 #                 },
-#                 "id": 20
+#                 "id": 6
 #               },
 #               {
 #                 "type": "row",
-#                 "title": "アプリのランキング",
+#                 "title": "アプリ",
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 40,
+#                   "y": 8,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 21
+#                 "id": 7
 #               },
 #               {
 #                 "type": "bargauge",
-#                 "title": "働き者（CPU）",
+#                 "title": "CPU（コア）",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -946,15 +388,14 @@
 #                     "min": 0,
 #                     "color": {
 #                       "mode": "fixed",
-#                       "fixedColor": "#73bf69"
+#                       "fixedColor": "#5794f2"
 #                     }
 #                   }
 #                 },
 #                 "options": {
-#                   "displayMode": "lcd",
+#                   "displayMode": "basic",
 #                   "orientation": "horizontal",
 #                   "showUnfilled": true,
-#                   "valueMode": "color",
 #                   "reduceOptions": {
 #                     "calcs": [
 #                       "lastNotNull"
@@ -964,22 +405,22 @@
 #                 "targets": [
 #                   {
 #                     "refId": "A",
-#                     "expr": "sort_desc(topk(5, label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
+#                     "expr": "sort_desc(topk(8, label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
 #                     "instant": true,
 #                     "legendFormat": "{{app}}"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 41,
+#                   "y": 9,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 22
+#                 "id": 8
 #               },
 #               {
 #                 "type": "bargauge",
-#                 "title": "大食い（メモリ）",
+#                 "title": "メモリ",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -990,15 +431,14 @@
 #                     "min": 0,
 #                     "color": {
 #                       "mode": "fixed",
-#                       "fixedColor": "#ff9830"
+#                       "fixedColor": "#5794f2"
 #                     }
 #                   }
 #                 },
 #                 "options": {
-#                   "displayMode": "lcd",
+#                   "displayMode": "basic",
 #                   "orientation": "horizontal",
 #                   "showUnfilled": true,
-#                   "valueMode": "color",
 #                   "reduceOptions": {
 #                     "calcs": [
 #                       "lastNotNull"
@@ -1008,22 +448,22 @@
 #                 "targets": [
 #                   {
 #                     "refId": "A",
-#                     "expr": "sort_desc(topk(5, label_replace(sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
+#                     "expr": "sort_desc(topk(8, label_replace(sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
 #                     "instant": true,
 #                     "legendFormat": "{{app}}"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 41,
+#                   "y": 9,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 23
+#                 "id": 9
 #               },
 #               {
 #                 "type": "bargauge",
-#                 "title": "おしゃべり（通信量）",
+#                 "title": "通信量",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -1039,10 +479,9 @@
 #                   }
 #                 },
 #                 "options": {
-#                   "displayMode": "lcd",
+#                   "displayMode": "basic",
 #                   "orientation": "horizontal",
 #                   "showUnfilled": true,
-#                   "valueMode": "color",
 #                   "reduceOptions": {
 #                     "calcs": [
 #                       "lastNotNull"
@@ -1052,34 +491,116 @@
 #                 "targets": [
 #                   {
 #                     "refId": "A",
-#                     "expr": "sort_desc(topk(5, label_replace(sum by (namespace) (rate(container_network_receive_bytes_total[2m]) + rate(container_network_transmit_bytes_total[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
+#                     "expr": "sort_desc(topk(8, label_replace(sum by (namespace) (rate(container_network_receive_bytes_total[2m]) + rate(container_network_transmit_bytes_total[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
 #                     "instant": true,
 #                     "legendFormat": "{{app}}"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 41,
+#                   "y": 9,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 24
+#                 "id": 10
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "アプリごとの CPU（コア）",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "custom": {
+#                       "fillOpacity": 30,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "normal"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}}",
+#                     "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 17,
+#                   "w": 12,
+#                   "h": 8
+#                 },
+#                 "id": 11
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "アプリごとのメモリ",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "bytes",
+#                     "custom": {
+#                       "fillOpacity": 30,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "normal"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}}",
+#                     "expr": "label_replace(sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 12,
+#                   "y": 17,
+#                   "w": 12,
+#                   "h": 8
+#                 },
+#                 "id": 12
 #               },
 #               {
 #                 "type": "row",
-#                 "title": "クラスタの生態系",
+#                 "title": "Pod とコンテナ",
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 49,
+#                   "y": 25,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 25
+#                 "id": 13
 #               },
 #               {
 #                 "type": "stat",
-#                 "title": "動いているアプリ",
+#                 "title": "アプリ",
 #                 "description": "",
 #                 "datasource": {
 #                   "type": "prometheus",
@@ -1096,7 +617,7 @@
 #                   }
 #                 },
 #                 "options": {
-#                   "colorMode": "background",
+#                   "colorMode": "value",
 #                   "graphMode": "area",
 #                   "textMode": "value",
 #                   "justifyMode": "center",
@@ -1109,17 +630,16 @@
 #                 "targets": [
 #                   {
 #                     "refId": "A",
-#                     "expr": "count(count by (namespace) (container_memory_working_set_bytes{container!=\"\"}))",
-#                     "instant": false
+#                     "expr": "count(count by (namespace) (container_memory_working_set_bytes{container!=\"\"}))"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 50,
+#                   "y": 26,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 26
+#                 "id": 14
 #               },
 #               {
 #                 "type": "stat",
@@ -1140,7 +660,7 @@
 #                   }
 #                 },
 #                 "options": {
-#                   "colorMode": "background",
+#                   "colorMode": "value",
 #                   "graphMode": "area",
 #                   "textMode": "value",
 #                   "justifyMode": "center",
@@ -1153,22 +673,21 @@
 #                 "targets": [
 #                   {
 #                     "refId": "A",
-#                     "expr": "count(count by (namespace, pod) (container_memory_working_set_bytes{container!=\"\"}))",
-#                     "instant": false
+#                     "expr": "count(count by (namespace, pod) (container_memory_working_set_bytes{container!=\"\"}))"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 4,
-#                   "y": 50,
+#                   "y": 26,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 27
+#                 "id": 15
 #               },
 #               {
 #                 "type": "stat",
-#                 "title": "この 1 時間に生まれたコンテナ",
-#                 "description": "再起動とデプロイで新しく動き出したコンテナ",
+#                 "title": "1 時間に起動したコンテナ",
+#                 "description": "デプロイや再起動で、新しく動き出したコンテナ",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -1179,12 +698,12 @@
 #                     "decimals": 0,
 #                     "color": {
 #                       "mode": "fixed",
-#                       "fixedColor": "#56a64b"
+#                       "fixedColor": "#1f60c4"
 #                     }
 #                   }
 #                 },
 #                 "options": {
-#                   "colorMode": "background",
+#                   "colorMode": "value",
 #                   "graphMode": "area",
 #                   "textMode": "value",
 #                   "justifyMode": "center",
@@ -1197,22 +716,21 @@
 #                 "targets": [
 #                   {
 #                     "refId": "A",
-#                     "expr": "count(container_start_time_seconds{container!=\"\"} > time() - 3600) or vector(0)",
-#                     "instant": false
+#                     "expr": "count(container_start_time_seconds{container!=\"\"} > time() - 3600) or vector(0)"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 50,
+#                   "y": 26,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 28
+#                 "id": 16
 #               },
 #               {
 #                 "type": "stat",
-#                 "title": "OOM で倒れたコンテナ",
-#                 "description": "この 24 時間にメモリの上限で止まった回数",
+#                 "title": "OOM（24 時間）",
+#                 "description": "メモリの上限で止まったコンテナ",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -1228,7 +746,7 @@
 #                   }
 #                 },
 #                 "options": {
-#                   "colorMode": "background",
+#                   "colorMode": "value",
 #                   "graphMode": "area",
 #                   "textMode": "value",
 #                   "justifyMode": "center",
@@ -1241,58 +759,21 @@
 #                 "targets": [
 #                   {
 #                     "refId": "A",
-#                     "expr": "(sum(increase(container_oom_events_total[1d])) or vector(0))",
-#                     "instant": false
+#                     "expr": "(sum(increase(container_oom_events_total[1d])) or vector(0))"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 50,
+#                   "y": 26,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 29
-#               },
-#               {
-#                 "type": "gauge",
-#                 "title": "盛り上がり（乱数）",
-#                 "datasource": {
-#                   "type": "grafana-testdata-datasource",
-#                   "uid": "testdata"
-#                 },
-#                 "fieldConfig": {
-#                   "defaults": {
-#                     "min": 0,
-#                     "max": 100
-#                   }
-#                 },
-#                 "options": {
-#                   "reduceOptions": {
-#                     "calcs": [
-#                       "lastNotNull"
-#                     ]
-#                   }
-#                 },
-#                 "targets": [
-#                   {
-#                     "refId": "A",
-#                     "scenarioId": "random_walk",
-#                     "min": 0,
-#                     "max": 100,
-#                     "startValue": 50
-#                   }
-#                 ],
-#                 "gridPos": {
-#                   "x": 16,
-#                   "y": 50,
-#                   "w": 8,
-#                   "h": 6
-#                 },
-#                 "id": 30
+#                 "id": 17
 #               },
 #               {
 #                 "type": "timeseries",
-#                 "title": "アプリの鼓動（プロセスが起動した回数 / 分）",
+#                 "title": "プロセスの起動（回/分）",
+#                 "description": "",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
@@ -1301,7 +782,7 @@
 #                   "defaults": {
 #                     "unit": "short",
 #                     "custom": {
-#                       "fillOpacity": 40,
+#                       "fillOpacity": 30,
 #                       "lineWidth": 2,
 #                       "stacking": {
 #                         "mode": "normal"
@@ -1324,25 +805,38 @@
 #                   }
 #                 ],
 #                 "gridPos": {
-#                   "x": 0,
-#                   "y": 56,
-#                   "w": 12,
-#                   "h": 9
+#                   "x": 16,
+#                   "y": 26,
+#                   "w": 8,
+#                   "h": 6
 #                 },
-#                 "id": 31
+#                 "id": 18
+#               },
+#               {
+#                 "type": "row",
+#                 "title": "Gateway",
+#                 "collapsed": false,
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 32,
+#                   "w": 24,
+#                   "h": 1
+#                 },
+#                 "id": 19
 #               },
 #               {
 #                 "type": "timeseries",
-#                 "title": "アプリごとの CPU",
+#                 "title": "リクエスト（回/秒）",
+#                 "description": "",
 #                 "datasource": {
 #                   "type": "prometheus",
 #                   "uid": "prometheus"
 #                 },
 #                 "fieldConfig": {
 #                   "defaults": {
-#                     "unit": "short",
+#                     "unit": "reqps",
 #                     "custom": {
-#                       "fillOpacity": 40,
+#                       "fillOpacity": 30,
 #                       "lineWidth": 2,
 #                       "stacking": {
 #                         "mode": "normal"
@@ -1360,16 +854,382 @@
 #                   {
 #                     "refId": "A",
 #                     "legendFormat": "{{app}}",
-#                     "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+#                     "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 33,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 20
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "5xx（回/秒）",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "reqps",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}}",
+#                     "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-.+\", envoy_response_code_class=\"5\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")) > 0"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 8,
+#                   "y": 33,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 21
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "応答時間 p95",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "ms",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}}",
+#                     "expr": "histogram_quantile(0.95, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-.+\"}[5m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 16,
+#                   "y": 33,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 22
+#               },
+#               {
+#                 "type": "row",
+#                 "title": "防いだ攻撃（24 時間）",
+#                 "collapsed": false,
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 41,
+#                   "w": 24,
+#                   "h": 1
+#                 },
+#                 "id": 23
+#               },
+#               {
+#                 "type": "stat",
+#                 "title": "API サーバが拒否した YAML",
+#                 "description": "ValidatingAdmissionPolicy と Pod Security が拒否した数",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#e02f44"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "value",
+#                   "graphMode": "area",
+#                   "textMode": "value",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "(sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) or vector(0)) + (sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) or vector(0))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 42,
+#                   "w": 6,
+#                   "h": 6
+#                 },
+#                 "id": 24
+#               },
+#               {
+#                 "type": "stat",
+#                 "title": "NetworkPolicy が落とした通信",
+#                 "description": "CiliumNetworkPolicy が落としたパケットの数",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#8f3bb8"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "value",
+#                   "graphMode": "area",
+#                   "textMode": "value",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "(sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1d])) or vector(0))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 6,
+#                   "y": 42,
+#                   "w": 6,
+#                   "h": 6
+#                 },
+#                 "id": 25
+#               },
+#               {
+#                 "type": "stat",
+#                 "title": "止めた user namespace",
+#                 "description": "Tetragon が止めたプロセスの数",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#e02f44"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "value",
+#                   "graphMode": "area",
+#                   "textMode": "value",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "(sum(increase(tetragon_policy_events_total[1d])) or vector(0))"
 #                   }
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 56,
-#                   "w": 12,
-#                   "h": 9
+#                   "y": 42,
+#                   "w": 6,
+#                   "h": 6
 #                 },
-#                 "id": 32
+#                 "id": 26
+#               },
+#               {
+#                 "type": "stat",
+#                 "title": "/tmp からの実行",
+#                 "description": "/tmp などに置いたファイルが実行された回数",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#e0b400"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "value",
+#                   "graphMode": "area",
+#                   "textMode": "value",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "(sum(increase(tetragon_events_total{binary=~\"/(tmp|var/tmp|dev/shm)/.*\"}[1d])) or vector(0))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 18,
+#                   "y": 42,
+#                   "w": 6,
+#                   "h": 6
+#                 },
+#                 "id": 27
+#               },
+#               {
+#                 "type": "bargauge",
+#                 "title": "当たったルール",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "min": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#e02f44"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "displayMode": "basic",
+#                   "orientation": "horizontal",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "instant": true,
+#                     "legendFormat": "{{policy}}",
+#                     "expr": "sort_desc(sum by (policy) (increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) > 0)"
+#                   },
+#                   {
+#                     "refId": "B",
+#                     "instant": true,
+#                     "legendFormat": "Pod Security",
+#                     "expr": "sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) > 0"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 48,
+#                   "w": 10,
+#                   "h": 8
+#                 },
+#                 "id": 28
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "止めた数（1 分ごと）",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       },
+#                       "drawStyle": "bars"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1m])) + sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1m]))",
+#                     "legendFormat": "API サーバ"
+#                   },
+#                   {
+#                     "refId": "B",
+#                     "expr": "sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1m]))",
+#                     "legendFormat": "NetworkPolicy"
+#                   },
+#                   {
+#                     "refId": "C",
+#                     "expr": "sum(increase(tetragon_policy_events_total[1m]))",
+#                     "legendFormat": "user namespace"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 10,
+#                   "y": 48,
+#                   "w": 14,
+#                   "h": 8
+#                 },
+#                 "id": 29
 #               },
 #               {
 #                 "type": "row",
@@ -1377,11 +1237,11 @@
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 65,
+#                   "y": 56,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 33
+#                 "id": 30
 #               },
 #               {
 #                 "type": "stat",
@@ -1402,7 +1262,7 @@
 #                   }
 #                 },
 #                 "options": {
-#                   "colorMode": "background",
+#                   "colorMode": "value",
 #                   "graphMode": "area",
 #                   "textMode": "value",
 #                   "justifyMode": "center",
@@ -1423,11 +1283,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 66,
+#                   "y": 57,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 34
+#                 "id": 31
 #               },
 #               {
 #                 "type": "stat",
@@ -1448,7 +1308,7 @@
 #                   }
 #                 },
 #                 "options": {
-#                   "colorMode": "background",
+#                   "colorMode": "value",
 #                   "graphMode": "area",
 #                   "textMode": "value",
 #                   "justifyMode": "center",
@@ -1469,11 +1329,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 66,
+#                   "y": 57,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 35
+#                 "id": 32
 #               },
 #               {
 #                 "type": "stat",
@@ -1494,7 +1354,7 @@
 #                   }
 #                 },
 #                 "options": {
-#                   "colorMode": "background",
+#                   "colorMode": "value",
 #                   "graphMode": "area",
 #                   "textMode": "value",
 #                   "justifyMode": "center",
@@ -1515,11 +1375,363 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 66,
+#                   "y": 57,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 36
+#                 "id": 33
+#               }
+#             ]
+#           }
+#       keynote:
+#         json: |
+#           {
+#             "title": "キーノート",
+#             "uid": "keynote",
+#             "refresh": "10s",
+#             "time": {
+#               "from": "now-1h",
+#               "to": "now"
+#             },
+#             "panels": [
+#               {
+#                 "type": "stat",
+#                 "title": "この期間のリクエスト",
+#                 "description": "画面の期間に、資料とコメントに来たリクエストの数",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#e4007f"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "value",
+#                   "graphMode": "area",
+#                   "textMode": "value_and_name",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum by (app) (label_replace(increase(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[$__range]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
+#                     "legendFormat": "{{app}}"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 0,
+#                   "w": 6,
+#                   "h": 7
+#                 },
+#                 "id": 1
+#               },
+#               {
+#                 "type": "stat",
+#                 "title": "いちばん混んだ瞬間（回/秒）",
+#                 "description": "画面の期間で、1 秒あたりのリクエストがいちばん多かったとき",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#1f60c4"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "value",
+#                   "graphMode": "area",
+#                   "textMode": "value_and_name",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "max_over_time((sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))[$__range:15s])",
+#                     "legendFormat": "{{app}}"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 6,
+#                   "y": 0,
+#                   "w": 6,
+#                   "h": 7
+#                 },
+#                 "id": 2
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "リクエスト（回/秒）",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "reqps",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
+#                     "legendFormat": "{{app}}"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 12,
+#                   "y": 0,
+#                   "w": 12,
+#                   "h": 7
+#                 },
+#                 "id": 3
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "ステータスコード（回/秒）",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "reqps",
+#                     "custom": {
+#                       "fillOpacity": 30,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "normal"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}} {{envoy_response_code_class}}xx",
+#                     "expr": "sum by (app, envoy_response_code_class) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 7,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 4
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "応答時間（p50 と p95）",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "ms",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}} p50",
+#                     "expr": "histogram_quantile(0.5, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+#                   },
+#                   {
+#                     "refId": "B",
+#                     "legendFormat": "{{app}} p95",
+#                     "expr": "histogram_quantile(0.95, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 8,
+#                   "y": 7,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 5
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "処理中のリクエスト",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}}",
+#                     "expr": "sum by (app) (label_replace(envoy_cluster_upstream_rq_active{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}, \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 16,
+#                   "y": 7,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 6
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "CPU（コア）",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}}",
+#                     "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}[1m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 15,
+#                   "w": 12,
+#                   "h": 8
+#                 },
+#                 "id": 7
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "メモリ",
+#                 "description": "",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "bytes",
+#                     "custom": {
+#                       "fillOpacity": 10,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}}",
+#                     "expr": "label_replace(sum by (namespace) (container_memory_working_set_bytes{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 12,
+#                   "y": 15,
+#                   "w": 12,
+#                   "h": 8
+#                 },
+#                 "id": 8
 #               }
 #             ]
 #           }
@@ -1644,29 +1856,17 @@ metadata:
     app.kubernetes.io/version: "13.3.1"
     dashboard-provider: default
 data:
-  showcase.json:
+  keynote.json:
     |-
       {
-        "title": "OSS Showcase",
-        "uid": "showcase",
+        "title": "キーノート",
+        "uid": "keynote",
         "refresh": "10s",
         "time": {
-          "from": "now-3h",
+          "from": "now-1h",
           "to": "now"
         },
         "panels": [
-          {
-            "type": "row",
-            "title": "キーノート（資料とコメント）",
-            "collapsed": false,
-            "gridPos": {
-              "x": 0,
-              "y": 0,
-              "w": 24,
-              "h": 1
-            },
-            "id": 1
-          },
           {
             "type": "stat",
             "title": "この期間のリクエスト",
@@ -1686,7 +1886,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value_and_name",
               "justifyMode": "center",
@@ -1700,17 +1900,16 @@ data:
               {
                 "refId": "A",
                 "expr": "sum by (app) (label_replace(increase(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[$__range]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
-                "instant": false,
                 "legendFormat": "{{app}}"
               }
             ],
             "gridPos": {
               "x": 0,
-              "y": 1,
+              "y": 0,
               "w": 6,
               "h": 7
             },
-            "id": 2
+            "id": 1
           },
           {
             "type": "stat",
@@ -1731,7 +1930,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value_and_name",
               "justifyMode": "center",
@@ -1745,21 +1944,21 @@ data:
               {
                 "refId": "A",
                 "expr": "max_over_time((sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))[$__range:15s])",
-                "instant": false,
                 "legendFormat": "{{app}}"
               }
             ],
             "gridPos": {
               "x": 6,
-              "y": 1,
+              "y": 0,
               "w": 6,
               "h": 7
             },
-            "id": 3
+            "id": 2
           },
           {
             "type": "timeseries",
             "title": "リクエスト（回/秒）",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -1768,7 +1967,7 @@ data:
               "defaults": {
                 "unit": "reqps",
                 "custom": {
-                  "fillOpacity": 15,
+                  "fillOpacity": 10,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "none"
@@ -1791,15 +1990,16 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 1,
+              "y": 0,
               "w": 12,
               "h": 7
             },
-            "id": 4
+            "id": 3
           },
           {
             "type": "timeseries",
             "title": "ステータスコード（回/秒）",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -1808,7 +2008,7 @@ data:
               "defaults": {
                 "unit": "reqps",
                 "custom": {
-                  "fillOpacity": 40,
+                  "fillOpacity": 30,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "normal"
@@ -1831,15 +2031,16 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 8,
+              "y": 7,
               "w": 8,
               "h": 8
             },
-            "id": 5
+            "id": 4
           },
           {
             "type": "timeseries",
             "title": "応答時間（p50 と p95）",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -1848,7 +2049,7 @@ data:
               "defaults": {
                 "unit": "ms",
                 "custom": {
-                  "fillOpacity": 15,
+                  "fillOpacity": 10,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "none"
@@ -1876,15 +2077,16 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 8,
+              "y": 7,
               "w": 8,
               "h": 8
             },
-            "id": 6
+            "id": 5
           },
           {
             "type": "timeseries",
-            "title": "処理中のリクエストと CPU",
+            "title": "処理中のリクエスト",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -1893,7 +2095,7 @@ data:
               "defaults": {
                 "unit": "short",
                 "custom": {
-                  "fillOpacity": 15,
+                  "fillOpacity": 10,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "none"
@@ -1910,262 +2112,22 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "legendFormat": "{{app}} 処理中",
+                "legendFormat": "{{app}}",
                 "expr": "sum by (app) (label_replace(envoy_cluster_upstream_rq_active{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}, \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
-              },
-              {
-                "refId": "B",
-                "legendFormat": "{{app}} CPU（コア）",
-                "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}[1m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
               }
             ],
             "gridPos": {
               "x": 16,
-              "y": 8,
+              "y": 7,
               "w": 8,
               "h": 8
             },
-            "id": 7
-          },
-          {
-            "type": "row",
-            "title": "防いだ攻撃（この 24 時間）",
-            "collapsed": false,
-            "gridPos": {
-              "x": 0,
-              "y": 16,
-              "w": 24,
-              "h": 1
-            },
-            "id": 8
-          },
-          {
-            "type": "stat",
-            "title": "API サーバで門前払い",
-            "description": "ValidatingAdmissionPolicy と Pod Security が拒否した YAML の数",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
-            "fieldConfig": {
-              "defaults": {
-                "unit": "short",
-                "decimals": 0,
-                "color": {
-                  "mode": "fixed",
-                  "fixedColor": "#e02f44"
-                }
-              }
-            },
-            "options": {
-              "colorMode": "background",
-              "graphMode": "area",
-              "textMode": "value",
-              "justifyMode": "center",
-              "reduceOptions": {
-                "calcs": [
-                  "lastNotNull"
-                ]
-              }
-            },
-            "targets": [
-              {
-                "refId": "A",
-                "expr": "(sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) or vector(0)) + (sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) or vector(0))",
-                "instant": false
-              }
-            ],
-            "gridPos": {
-              "x": 0,
-              "y": 17,
-              "w": 6,
-              "h": 7
-            },
-            "id": 9
-          },
-          {
-            "type": "stat",
-            "title": "NetworkPolicy で落とした通信",
-            "description": "CiliumNetworkPolicy が落としたパケットの数",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
-            "fieldConfig": {
-              "defaults": {
-                "unit": "short",
-                "decimals": 0,
-                "color": {
-                  "mode": "fixed",
-                  "fixedColor": "#8f3bb8"
-                }
-              }
-            },
-            "options": {
-              "colorMode": "background",
-              "graphMode": "area",
-              "textMode": "value",
-              "justifyMode": "center",
-              "reduceOptions": {
-                "calcs": [
-                  "lastNotNull"
-                ]
-              }
-            },
-            "targets": [
-              {
-                "refId": "A",
-                "expr": "(sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1d])) or vector(0))",
-                "instant": false
-              }
-            ],
-            "gridPos": {
-              "x": 6,
-              "y": 17,
-              "w": 6,
-              "h": 7
-            },
-            "id": 10
-          },
-          {
-            "type": "stat",
-            "title": "user namespace を阻止",
-            "description": "Tetragon が user namespace を作ろうとしたプロセスを止めた回数",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
-            "fieldConfig": {
-              "defaults": {
-                "unit": "short",
-                "decimals": 0,
-                "color": {
-                  "mode": "fixed",
-                  "fixedColor": "#ff7383"
-                }
-              }
-            },
-            "options": {
-              "colorMode": "background",
-              "graphMode": "area",
-              "textMode": "value",
-              "justifyMode": "center",
-              "reduceOptions": {
-                "calcs": [
-                  "lastNotNull"
-                ]
-              }
-            },
-            "targets": [
-              {
-                "refId": "A",
-                "expr": "(sum(increase(tetragon_policy_events_total[1d])) or vector(0))",
-                "instant": false
-              }
-            ],
-            "gridPos": {
-              "x": 12,
-              "y": 17,
-              "w": 6,
-              "h": 7
-            },
-            "id": 11
-          },
-          {
-            "type": "stat",
-            "title": "/tmp からの実行を発見",
-            "description": "/tmp などに置いたファイルを実行した回数。止めずに記録だけしている",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
-            "fieldConfig": {
-              "defaults": {
-                "unit": "short",
-                "decimals": 0,
-                "color": {
-                  "mode": "fixed",
-                  "fixedColor": "#fade2a"
-                }
-              }
-            },
-            "options": {
-              "colorMode": "background",
-              "graphMode": "area",
-              "textMode": "value",
-              "justifyMode": "center",
-              "reduceOptions": {
-                "calcs": [
-                  "lastNotNull"
-                ]
-              }
-            },
-            "targets": [
-              {
-                "refId": "A",
-                "expr": "(sum(increase(tetragon_events_total{binary=~\"/(tmp|var/tmp|dev/shm)/.*\"}[1d])) or vector(0))",
-                "instant": false
-              }
-            ],
-            "gridPos": {
-              "x": 18,
-              "y": 17,
-              "w": 6,
-              "h": 7
-            },
-            "id": 12
-          },
-          {
-            "type": "bargauge",
-            "title": "当たったルール",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
-            "fieldConfig": {
-              "defaults": {
-                "unit": "short",
-                "min": 0,
-                "color": {
-                  "mode": "fixed",
-                  "fixedColor": "#e02f44"
-                }
-              }
-            },
-            "options": {
-              "displayMode": "gradient",
-              "orientation": "horizontal",
-              "reduceOptions": {
-                "calcs": [
-                  "lastNotNull"
-                ]
-              }
-            },
-            "targets": [
-              {
-                "refId": "A",
-                "instant": true,
-                "legendFormat": "{{policy}}",
-                "expr": "sort_desc(sum by (policy) (increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) > 0)"
-              },
-              {
-                "refId": "B",
-                "instant": true,
-                "legendFormat": "Pod Security",
-                "expr": "sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) > 0"
-              }
-            ],
-            "gridPos": {
-              "x": 0,
-              "y": 24,
-              "w": 10,
-              "h": 8
-            },
-            "id": 13
+            "id": 6
           },
           {
             "type": "timeseries",
-            "title": "攻撃のタイムライン（1 分ごと）",
+            "title": "CPU（コア）",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2174,12 +2136,11 @@ data:
               "defaults": {
                 "unit": "short",
                 "custom": {
-                  "fillOpacity": 15,
+                  "fillOpacity": 10,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "none"
-                  },
-                  "drawStyle": "bars"
+                  }
                 }
               }
             },
@@ -2192,39 +2153,84 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1m])) + sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1m]))",
-                "legendFormat": "門前払い"
-              },
-              {
-                "refId": "B",
-                "expr": "sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1m]))",
-                "legendFormat": "落とした通信"
-              },
-              {
-                "refId": "C",
-                "expr": "sum(increase(tetragon_policy_events_total[1m]))",
-                "legendFormat": "user namespace"
+                "legendFormat": "{{app}}",
+                "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}[1m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
               }
             ],
             "gridPos": {
-              "x": 10,
-              "y": 24,
-              "w": 14,
+              "x": 0,
+              "y": 15,
+              "w": 12,
               "h": 8
             },
-            "id": 14
+            "id": 7
           },
           {
+            "type": "timeseries",
+            "title": "メモリ",
+            "description": "",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "bytes",
+                "custom": {
+                  "fillOpacity": 10,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}}",
+                "expr": "label_replace(sum by (namespace) (container_memory_working_set_bytes{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+              }
+            ],
+            "gridPos": {
+              "x": 12,
+              "y": 15,
+              "w": 12,
+              "h": 8
+            },
+            "id": 8
+          }
+        ]
+      }
+      
+  showcase.json:
+    |-
+      {
+        "title": "OSS Showcase",
+        "uid": "showcase",
+        "refresh": "10s",
+        "time": {
+          "from": "now-3h",
+          "to": "now"
+        },
+        "panels": [
+          {
             "type": "row",
-            "title": "ノード全体",
+            "title": "ノード",
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 32,
+              "y": 0,
               "w": 24,
               "h": 1
             },
-            "id": 15
+            "id": 1
           },
           {
             "type": "gauge",
@@ -2275,11 +2281,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 33,
+              "y": 1,
               "w": 4,
               "h": 7
             },
-            "id": 16
+            "id": 2
           },
           {
             "type": "gauge",
@@ -2330,11 +2336,11 @@ data:
             ],
             "gridPos": {
               "x": 4,
-              "y": 33,
+              "y": 1,
               "w": 4,
               "h": 7
             },
-            "id": 17
+            "id": 3
           },
           {
             "type": "gauge",
@@ -2385,16 +2391,16 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 33,
+              "y": 1,
               "w": 4,
               "h": 7
             },
-            "id": 18
+            "id": 4
           },
           {
             "type": "gauge",
-            "title": "PVC の置き場",
-            "description": "PVC を置くループデバイスの使用率。全部のアプリで分け合う",
+            "title": "PVC",
+            "description": "PVC の使用率",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2440,15 +2446,16 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 33,
+              "y": 1,
               "w": 4,
               "h": 7
             },
-            "id": 19
+            "id": 5
           },
           {
             "type": "timeseries",
             "title": "CPU とメモリの使用率",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2457,7 +2464,7 @@ data:
               "defaults": {
                 "unit": "percentunit",
                 "custom": {
-                  "fillOpacity": 15,
+                  "fillOpacity": 10,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "none"
@@ -2485,27 +2492,27 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 33,
+              "y": 1,
               "w": 8,
               "h": 7
             },
-            "id": 20
+            "id": 6
           },
           {
             "type": "row",
-            "title": "アプリのランキング",
+            "title": "アプリ",
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 40,
+              "y": 8,
               "w": 24,
               "h": 1
             },
-            "id": 21
+            "id": 7
           },
           {
             "type": "bargauge",
-            "title": "働き者（CPU）",
+            "title": "CPU（コア）",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2516,15 +2523,14 @@ data:
                 "min": 0,
                 "color": {
                   "mode": "fixed",
-                  "fixedColor": "#73bf69"
+                  "fixedColor": "#5794f2"
                 }
               }
             },
             "options": {
-              "displayMode": "lcd",
+              "displayMode": "basic",
               "orientation": "horizontal",
               "showUnfilled": true,
-              "valueMode": "color",
               "reduceOptions": {
                 "calcs": [
                   "lastNotNull"
@@ -2534,22 +2540,22 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "sort_desc(topk(5, label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
+                "expr": "sort_desc(topk(8, label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
                 "instant": true,
                 "legendFormat": "{{app}}"
               }
             ],
             "gridPos": {
               "x": 0,
-              "y": 41,
+              "y": 9,
               "w": 8,
               "h": 8
             },
-            "id": 22
+            "id": 8
           },
           {
             "type": "bargauge",
-            "title": "大食い（メモリ）",
+            "title": "メモリ",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2560,15 +2566,14 @@ data:
                 "min": 0,
                 "color": {
                   "mode": "fixed",
-                  "fixedColor": "#ff9830"
+                  "fixedColor": "#5794f2"
                 }
               }
             },
             "options": {
-              "displayMode": "lcd",
+              "displayMode": "basic",
               "orientation": "horizontal",
               "showUnfilled": true,
-              "valueMode": "color",
               "reduceOptions": {
                 "calcs": [
                   "lastNotNull"
@@ -2578,22 +2583,22 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "sort_desc(topk(5, label_replace(sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
+                "expr": "sort_desc(topk(8, label_replace(sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
                 "instant": true,
                 "legendFormat": "{{app}}"
               }
             ],
             "gridPos": {
               "x": 8,
-              "y": 41,
+              "y": 9,
               "w": 8,
               "h": 8
             },
-            "id": 23
+            "id": 9
           },
           {
             "type": "bargauge",
-            "title": "おしゃべり（通信量）",
+            "title": "通信量",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2609,10 +2614,9 @@ data:
               }
             },
             "options": {
-              "displayMode": "lcd",
+              "displayMode": "basic",
               "orientation": "horizontal",
               "showUnfilled": true,
-              "valueMode": "color",
               "reduceOptions": {
                 "calcs": [
                   "lastNotNull"
@@ -2622,34 +2626,116 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "sort_desc(topk(5, label_replace(sum by (namespace) (rate(container_network_receive_bytes_total[2m]) + rate(container_network_transmit_bytes_total[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
+                "expr": "sort_desc(topk(8, label_replace(sum by (namespace) (rate(container_network_receive_bytes_total[2m]) + rate(container_network_transmit_bytes_total[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")))",
                 "instant": true,
                 "legendFormat": "{{app}}"
               }
             ],
             "gridPos": {
               "x": 16,
-              "y": 41,
+              "y": 9,
               "w": 8,
               "h": 8
             },
-            "id": 24
+            "id": 10
+          },
+          {
+            "type": "timeseries",
+            "title": "アプリごとの CPU（コア）",
+            "description": "",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "custom": {
+                  "fillOpacity": 30,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "normal"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}}",
+                "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+              }
+            ],
+            "gridPos": {
+              "x": 0,
+              "y": 17,
+              "w": 12,
+              "h": 8
+            },
+            "id": 11
+          },
+          {
+            "type": "timeseries",
+            "title": "アプリごとのメモリ",
+            "description": "",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "bytes",
+                "custom": {
+                  "fillOpacity": 30,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "normal"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}}",
+                "expr": "label_replace(sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+              }
+            ],
+            "gridPos": {
+              "x": 12,
+              "y": 17,
+              "w": 12,
+              "h": 8
+            },
+            "id": 12
           },
           {
             "type": "row",
-            "title": "クラスタの生態系",
+            "title": "Pod とコンテナ",
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 49,
+              "y": 25,
               "w": 24,
               "h": 1
             },
-            "id": 25
+            "id": 13
           },
           {
             "type": "stat",
-            "title": "動いているアプリ",
+            "title": "アプリ",
             "description": "",
             "datasource": {
               "type": "prometheus",
@@ -2666,7 +2752,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value",
               "justifyMode": "center",
@@ -2679,17 +2765,16 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "count(count by (namespace) (container_memory_working_set_bytes{container!=\"\"}))",
-                "instant": false
+                "expr": "count(count by (namespace) (container_memory_working_set_bytes{container!=\"\"}))"
               }
             ],
             "gridPos": {
               "x": 0,
-              "y": 50,
+              "y": 26,
               "w": 4,
               "h": 6
             },
-            "id": 26
+            "id": 14
           },
           {
             "type": "stat",
@@ -2710,7 +2795,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value",
               "justifyMode": "center",
@@ -2723,22 +2808,21 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "count(count by (namespace, pod) (container_memory_working_set_bytes{container!=\"\"}))",
-                "instant": false
+                "expr": "count(count by (namespace, pod) (container_memory_working_set_bytes{container!=\"\"}))"
               }
             ],
             "gridPos": {
               "x": 4,
-              "y": 50,
+              "y": 26,
               "w": 4,
               "h": 6
             },
-            "id": 27
+            "id": 15
           },
           {
             "type": "stat",
-            "title": "この 1 時間に生まれたコンテナ",
-            "description": "再起動とデプロイで新しく動き出したコンテナ",
+            "title": "1 時間に起動したコンテナ",
+            "description": "デプロイや再起動で、新しく動き出したコンテナ",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2749,12 +2833,12 @@ data:
                 "decimals": 0,
                 "color": {
                   "mode": "fixed",
-                  "fixedColor": "#56a64b"
+                  "fixedColor": "#1f60c4"
                 }
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value",
               "justifyMode": "center",
@@ -2767,22 +2851,21 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "count(container_start_time_seconds{container!=\"\"} > time() - 3600) or vector(0)",
-                "instant": false
+                "expr": "count(container_start_time_seconds{container!=\"\"} > time() - 3600) or vector(0)"
               }
             ],
             "gridPos": {
               "x": 8,
-              "y": 50,
+              "y": 26,
               "w": 4,
               "h": 6
             },
-            "id": 28
+            "id": 16
           },
           {
             "type": "stat",
-            "title": "OOM で倒れたコンテナ",
-            "description": "この 24 時間にメモリの上限で止まった回数",
+            "title": "OOM（24 時間）",
+            "description": "メモリの上限で止まったコンテナ",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2798,7 +2881,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value",
               "justifyMode": "center",
@@ -2811,58 +2894,21 @@ data:
             "targets": [
               {
                 "refId": "A",
-                "expr": "(sum(increase(container_oom_events_total[1d])) or vector(0))",
-                "instant": false
+                "expr": "(sum(increase(container_oom_events_total[1d])) or vector(0))"
               }
             ],
             "gridPos": {
               "x": 12,
-              "y": 50,
+              "y": 26,
               "w": 4,
               "h": 6
             },
-            "id": 29
-          },
-          {
-            "type": "gauge",
-            "title": "盛り上がり（乱数）",
-            "datasource": {
-              "type": "grafana-testdata-datasource",
-              "uid": "testdata"
-            },
-            "fieldConfig": {
-              "defaults": {
-                "min": 0,
-                "max": 100
-              }
-            },
-            "options": {
-              "reduceOptions": {
-                "calcs": [
-                  "lastNotNull"
-                ]
-              }
-            },
-            "targets": [
-              {
-                "refId": "A",
-                "scenarioId": "random_walk",
-                "min": 0,
-                "max": 100,
-                "startValue": 50
-              }
-            ],
-            "gridPos": {
-              "x": 16,
-              "y": 50,
-              "w": 8,
-              "h": 6
-            },
-            "id": 30
+            "id": 17
           },
           {
             "type": "timeseries",
-            "title": "アプリの鼓動（プロセスが起動した回数 / 分）",
+            "title": "プロセスの起動（回/分）",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
@@ -2871,7 +2917,7 @@ data:
               "defaults": {
                 "unit": "short",
                 "custom": {
-                  "fillOpacity": 40,
+                  "fillOpacity": 30,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "normal"
@@ -2894,25 +2940,38 @@ data:
               }
             ],
             "gridPos": {
-              "x": 0,
-              "y": 56,
-              "w": 12,
-              "h": 9
+              "x": 16,
+              "y": 26,
+              "w": 8,
+              "h": 6
             },
-            "id": 31
+            "id": 18
+          },
+          {
+            "type": "row",
+            "title": "Gateway",
+            "collapsed": false,
+            "gridPos": {
+              "x": 0,
+              "y": 32,
+              "w": 24,
+              "h": 1
+            },
+            "id": 19
           },
           {
             "type": "timeseries",
-            "title": "アプリごとの CPU",
+            "title": "リクエスト（回/秒）",
+            "description": "",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
             },
             "fieldConfig": {
               "defaults": {
-                "unit": "short",
+                "unit": "reqps",
                 "custom": {
-                  "fillOpacity": 40,
+                  "fillOpacity": 30,
                   "lineWidth": 2,
                   "stacking": {
                     "mode": "normal"
@@ -2930,16 +2989,382 @@ data:
               {
                 "refId": "A",
                 "legendFormat": "{{app}}",
-                "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[2m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+                "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+              }
+            ],
+            "gridPos": {
+              "x": 0,
+              "y": 33,
+              "w": 8,
+              "h": 8
+            },
+            "id": 20
+          },
+          {
+            "type": "timeseries",
+            "title": "5xx（回/秒）",
+            "description": "",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps",
+                "custom": {
+                  "fillOpacity": 10,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}}",
+                "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-.+\", envoy_response_code_class=\"5\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")) > 0"
+              }
+            ],
+            "gridPos": {
+              "x": 8,
+              "y": 33,
+              "w": 8,
+              "h": 8
+            },
+            "id": 21
+          },
+          {
+            "type": "timeseries",
+            "title": "応答時間 p95",
+            "description": "",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "ms",
+                "custom": {
+                  "fillOpacity": 10,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}}",
+                "expr": "histogram_quantile(0.95, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-.+\"}[5m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+              }
+            ],
+            "gridPos": {
+              "x": 16,
+              "y": 33,
+              "w": 8,
+              "h": 8
+            },
+            "id": 22
+          },
+          {
+            "type": "row",
+            "title": "防いだ攻撃（24 時間）",
+            "collapsed": false,
+            "gridPos": {
+              "x": 0,
+              "y": 41,
+              "w": 24,
+              "h": 1
+            },
+            "id": 23
+          },
+          {
+            "type": "stat",
+            "title": "API サーバが拒否した YAML",
+            "description": "ValidatingAdmissionPolicy と Pod Security が拒否した数",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "decimals": 0,
+                "color": {
+                  "mode": "fixed",
+                  "fixedColor": "#e02f44"
+                }
+              }
+            },
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "textMode": "value",
+              "justifyMode": "center",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "(sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) or vector(0)) + (sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) or vector(0))"
+              }
+            ],
+            "gridPos": {
+              "x": 0,
+              "y": 42,
+              "w": 6,
+              "h": 6
+            },
+            "id": 24
+          },
+          {
+            "type": "stat",
+            "title": "NetworkPolicy が落とした通信",
+            "description": "CiliumNetworkPolicy が落としたパケットの数",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "decimals": 0,
+                "color": {
+                  "mode": "fixed",
+                  "fixedColor": "#8f3bb8"
+                }
+              }
+            },
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "textMode": "value",
+              "justifyMode": "center",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "(sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1d])) or vector(0))"
+              }
+            ],
+            "gridPos": {
+              "x": 6,
+              "y": 42,
+              "w": 6,
+              "h": 6
+            },
+            "id": 25
+          },
+          {
+            "type": "stat",
+            "title": "止めた user namespace",
+            "description": "Tetragon が止めたプロセスの数",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "decimals": 0,
+                "color": {
+                  "mode": "fixed",
+                  "fixedColor": "#e02f44"
+                }
+              }
+            },
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "textMode": "value",
+              "justifyMode": "center",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "(sum(increase(tetragon_policy_events_total[1d])) or vector(0))"
               }
             ],
             "gridPos": {
               "x": 12,
-              "y": 56,
-              "w": 12,
-              "h": 9
+              "y": 42,
+              "w": 6,
+              "h": 6
             },
-            "id": 32
+            "id": 26
+          },
+          {
+            "type": "stat",
+            "title": "/tmp からの実行",
+            "description": "/tmp などに置いたファイルが実行された回数",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "decimals": 0,
+                "color": {
+                  "mode": "fixed",
+                  "fixedColor": "#e0b400"
+                }
+              }
+            },
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "textMode": "value",
+              "justifyMode": "center",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "(sum(increase(tetragon_events_total{binary=~\"/(tmp|var/tmp|dev/shm)/.*\"}[1d])) or vector(0))"
+              }
+            ],
+            "gridPos": {
+              "x": 18,
+              "y": 42,
+              "w": 6,
+              "h": 6
+            },
+            "id": 27
+          },
+          {
+            "type": "bargauge",
+            "title": "当たったルール",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "min": 0,
+                "color": {
+                  "mode": "fixed",
+                  "fixedColor": "#e02f44"
+                }
+              }
+            },
+            "options": {
+              "displayMode": "basic",
+              "orientation": "horizontal",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "instant": true,
+                "legendFormat": "{{policy}}",
+                "expr": "sort_desc(sum by (policy) (increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1d])) > 0)"
+              },
+              {
+                "refId": "B",
+                "instant": true,
+                "legendFormat": "Pod Security",
+                "expr": "sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1d])) > 0"
+              }
+            ],
+            "gridPos": {
+              "x": 0,
+              "y": 48,
+              "w": 10,
+              "h": 8
+            },
+            "id": 28
+          },
+          {
+            "type": "timeseries",
+            "title": "止めた数（1 分ごと）",
+            "description": "",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "custom": {
+                  "fillOpacity": 10,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  },
+                  "drawStyle": "bars"
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum(increase(apiserver_validating_admission_policy_check_total{policy=~\"showcase-.+\", enforcement_action=\"deny\"}[1m])) + sum(increase(apiserver_admission_controller_admission_duration_seconds_count{name=\"PodSecurity\", rejected=\"true\"}[1m]))",
+                "legendFormat": "API サーバ"
+              },
+              {
+                "refId": "B",
+                "expr": "sum(increase(cilium_drop_count_total{reason=~\"Policy denied.*\"}[1m]))",
+                "legendFormat": "NetworkPolicy"
+              },
+              {
+                "refId": "C",
+                "expr": "sum(increase(tetragon_policy_events_total[1m]))",
+                "legendFormat": "user namespace"
+              }
+            ],
+            "gridPos": {
+              "x": 10,
+              "y": 48,
+              "w": 14,
+              "h": 8
+            },
+            "id": 29
           },
           {
             "type": "row",
@@ -2947,11 +3372,11 @@ data:
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 65,
+              "y": 56,
               "w": 24,
               "h": 1
             },
-            "id": 33
+            "id": 30
           },
           {
             "type": "stat",
@@ -2972,7 +3397,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value",
               "justifyMode": "center",
@@ -2993,11 +3418,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 66,
+              "y": 57,
               "w": 8,
               "h": 4
             },
-            "id": 34
+            "id": 31
           },
           {
             "type": "stat",
@@ -3018,7 +3443,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value",
               "justifyMode": "center",
@@ -3039,11 +3464,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 66,
+              "y": 57,
               "w": 8,
               "h": 4
             },
-            "id": 35
+            "id": 32
           },
           {
             "type": "stat",
@@ -3064,7 +3489,7 @@ data:
               }
             },
             "options": {
-              "colorMode": "background",
+              "colorMode": "value",
               "graphMode": "area",
               "textMode": "value",
               "justifyMode": "center",
@@ -3085,11 +3510,11 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 66,
+              "y": 57,
               "w": 8,
               "h": 4
             },
-            "id": 36
+            "id": 33
           }
         ]
       }
@@ -3177,9 +3602,9 @@ spec:
         app.kubernetes.io/version: "13.3.1"
       annotations:
         checksum/config: 0eb1f4d0ee770c7d886bbcaff3f353f2e94868186aac70cfe3c1e482b672ce6e
-        checksum/dashboards-json-config: f9ea4fea7b6170bad181b27423be576c2ec2c4d0f5b9fc732285002d2ae1bbf9
+        checksum/dashboards-json-config: 09cc24054de04455267c315badedd646f6e16b225c11cbc4570dc5af53e11f96
         checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
-        checksum/secret: 941fbe4340062422a618a5776ddc87cadfe2cc05fb3f013903ed0e0281ef3709
+        checksum/secret: b6b51adb66678b1c85f57d7842c84cae2b5978d158875addc7f9496f202e81e5
         kubectl.kubernetes.io/default-container: grafana
     spec:
       
@@ -3236,6 +3661,9 @@ spec:
               mountPath: "/var/lib/grafana"
             - name: search
               mountPath: "/var/lib/grafana-search"
+            - name: dashboards-default
+              mountPath: "/var/lib/grafana/dashboards/default/keynote.json"
+              subPath: "keynote.json"
             - name: dashboards-default
               mountPath: "/var/lib/grafana/dashboards/default/showcase.json"
               subPath: "showcase.json"
