@@ -608,7 +608,7 @@ data:
             </tbody>
           </table></div>
           <div class="what">
-            <div><b>踏んだもの</b><p>CloudNativePG の PostgreSQL が起動しない。manager を 0750 で置いて実行するため。</p></div>
+            <div><b>踏んだもの</b><p>CloudNativePG の PostgreSQL が起動しない。中で実行する manager のパーミッションが 0750 のため。</p></div>
             <div><b>対処</b><p>CloudNativePG の Pod だけ、runc で動かしている。</p></div>
           </div>
         </article>
