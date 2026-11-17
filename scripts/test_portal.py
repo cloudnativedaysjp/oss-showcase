@@ -44,7 +44,11 @@ assert len(calls) == 1, calls
 out = portal.page(['"><script>x</script>.showcase.cloudnativedays.jp'])
 assert "<script>x" not in out and "&lt;script&gt;" in out
 
-# キーノートのアプリは、ほかのアプリより先に、キーノートの見た目で並べる
-out = portal.page(["a.showcase.cloudnativedays.jp", "sanposhiho.showcase.cloudnativedays.jp"])
-assert out.index("sanposhiho.") < out.index("a.showcase") and 'class="hex keynote"' in out
+# キーノートの時間だけ、キーノートのアプリを先頭に、キーノートの見た目で並べる
+apps = ["a.showcase.cloudnativedays.jp", "sanposhiho.showcase.cloudnativedays.jp"]
+out = portal.page(apps, now=portal.KEYNOTE_FROM)
+assert out.index("sanposhiho.") < out.index("a.showcase") and 'class="hex keynote"' in out and portal.KEYNOTE_SPEAKER in out
+for t in (portal.KEYNOTE_FROM - portal.datetime.timedelta(minutes=1), portal.KEYNOTE_TO):
+    out = portal.page(apps, now=t)
+    assert out.index("a.showcase") < out.index("sanposhiho.") and 'class="hex keynote"' not in out, t
 print("ok")
