@@ -51,4 +51,6 @@ assert out.index("sanposhiho.") < out.index("a.showcase") and 'class="hex keynot
 for t in (portal.KEYNOTE_FROM - portal.datetime.timedelta(minutes=1), portal.KEYNOTE_TO):
     out = portal.page(apps, now=t)
     assert out.index("a.showcase") < out.index("sanposhiho.") and 'class="hex keynote"' not in out, t
+# 一覧の読み直しでも、?at=keynote を付けたまま取りにいく
+assert "location.pathname + location.search" in portal.page([])
 print("ok")
