@@ -87,7 +87,7 @@
 #             "panels": [
 #               {
 #                 "type": "row",
-#                 "title": "防いだ攻撃（この 24 時間）",
+#                 "title": "キーノート（資料とコメント）",
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
@@ -96,6 +96,278 @@
 #                   "h": 1
 #                 },
 #                 "id": 1
+#               },
+#               {
+#                 "type": "stat",
+#                 "title": "この期間のリクエスト",
+#                 "description": "画面の期間に、資料とコメントに来たリクエストの数",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#e4007f"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "background",
+#                   "graphMode": "area",
+#                   "textMode": "value_and_name",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum by (app) (label_replace(increase(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[$__range]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
+#                     "instant": false,
+#                     "legendFormat": "{{app}}"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 1,
+#                   "w": 6,
+#                   "h": 7
+#                 },
+#                 "id": 2
+#               },
+#               {
+#                 "type": "stat",
+#                 "title": "いちばん混んだ瞬間（回/秒）",
+#                 "description": "画面の期間で、1 秒あたりのリクエストがいちばん多かったとき",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "decimals": 0,
+#                     "color": {
+#                       "mode": "fixed",
+#                       "fixedColor": "#1f60c4"
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "colorMode": "background",
+#                   "graphMode": "area",
+#                   "textMode": "value_and_name",
+#                   "justifyMode": "center",
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "max_over_time((sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))[$__range:15s])",
+#                     "instant": false,
+#                     "legendFormat": "{{app}}"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 6,
+#                   "y": 1,
+#                   "w": 6,
+#                   "h": 7
+#                 },
+#                 "id": 3
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "リクエスト（回/秒）",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "reqps",
+#                     "custom": {
+#                       "fillOpacity": 15,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
+#                     "legendFormat": "{{app}}"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 12,
+#                   "y": 1,
+#                   "w": 12,
+#                   "h": 7
+#                 },
+#                 "id": 4
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "ステータスコード（回/秒）",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "reqps",
+#                     "custom": {
+#                       "fillOpacity": 40,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "normal"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}} {{envoy_response_code_class}}xx",
+#                     "expr": "sum by (app, envoy_response_code_class) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 8,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 5
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "応答時間（p50 と p95）",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "ms",
+#                     "custom": {
+#                       "fillOpacity": 15,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}} p50",
+#                     "expr": "histogram_quantile(0.5, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+#                   },
+#                   {
+#                     "refId": "B",
+#                     "legendFormat": "{{app}} p95",
+#                     "expr": "histogram_quantile(0.95, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 8,
+#                   "y": 8,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 6
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "処理中のリクエストと CPU",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "short",
+#                     "custom": {
+#                       "fillOpacity": 15,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "legendFormat": "{{app}} 処理中",
+#                     "expr": "sum by (app) (label_replace(envoy_cluster_upstream_rq_active{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}, \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+#                   },
+#                   {
+#                     "refId": "B",
+#                     "legendFormat": "{{app}} CPU（コア）",
+#                     "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}[1m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 16,
+#                   "y": 8,
+#                   "w": 8,
+#                   "h": 8
+#                 },
+#                 "id": 7
+#               },
+#               {
+#                 "type": "row",
+#                 "title": "防いだ攻撃（この 24 時間）",
+#                 "collapsed": false,
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 16,
+#                   "w": 24,
+#                   "h": 1
+#                 },
+#                 "id": 8
 #               },
 #               {
 #                 "type": "stat",
@@ -135,11 +407,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 1,
+#                   "y": 17,
 #                   "w": 6,
 #                   "h": 7
 #                 },
-#                 "id": 2
+#                 "id": 9
 #               },
 #               {
 #                 "type": "stat",
@@ -179,11 +451,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 6,
-#                   "y": 1,
+#                   "y": 17,
 #                   "w": 6,
 #                   "h": 7
 #                 },
-#                 "id": 3
+#                 "id": 10
 #               },
 #               {
 #                 "type": "stat",
@@ -223,11 +495,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 1,
+#                   "y": 17,
 #                   "w": 6,
 #                   "h": 7
 #                 },
-#                 "id": 4
+#                 "id": 11
 #               },
 #               {
 #                 "type": "stat",
@@ -267,11 +539,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 18,
-#                   "y": 1,
+#                   "y": 17,
 #                   "w": 6,
 #                   "h": 7
 #                 },
-#                 "id": 5
+#                 "id": 12
 #               },
 #               {
 #                 "type": "bargauge",
@@ -315,11 +587,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 8,
+#                   "y": 24,
 #                   "w": 10,
 #                   "h": 8
 #                 },
-#                 "id": 6
+#                 "id": 13
 #               },
 #               {
 #                 "type": "timeseries",
@@ -366,11 +638,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 10,
-#                   "y": 8,
+#                   "y": 24,
 #                   "w": 14,
 #                   "h": 8
 #                 },
-#                 "id": 7
+#                 "id": 14
 #               },
 #               {
 #                 "type": "row",
@@ -378,11 +650,11 @@
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 16,
+#                   "y": 32,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 8
+#                 "id": 15
 #               },
 #               {
 #                 "type": "gauge",
@@ -433,11 +705,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 17,
+#                   "y": 33,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 9
+#                 "id": 16
 #               },
 #               {
 #                 "type": "gauge",
@@ -488,11 +760,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 4,
-#                   "y": 17,
+#                   "y": 33,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 10
+#                 "id": 17
 #               },
 #               {
 #                 "type": "gauge",
@@ -543,11 +815,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 17,
+#                   "y": 33,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 11
+#                 "id": 18
 #               },
 #               {
 #                 "type": "gauge",
@@ -598,11 +870,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 17,
+#                   "y": 33,
 #                   "w": 4,
 #                   "h": 7
 #                 },
-#                 "id": 12
+#                 "id": 19
 #               },
 #               {
 #                 "type": "timeseries",
@@ -643,11 +915,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 17,
+#                   "y": 33,
 #                   "w": 8,
 #                   "h": 7
 #                 },
-#                 "id": 13
+#                 "id": 20
 #               },
 #               {
 #                 "type": "row",
@@ -655,11 +927,11 @@
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 24,
+#                   "y": 40,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 14
+#                 "id": 21
 #               },
 #               {
 #                 "type": "bargauge",
@@ -699,11 +971,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 25,
+#                   "y": 41,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 15
+#                 "id": 22
 #               },
 #               {
 #                 "type": "bargauge",
@@ -743,11 +1015,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 25,
+#                   "y": 41,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 16
+#                 "id": 23
 #               },
 #               {
 #                 "type": "bargauge",
@@ -787,11 +1059,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 25,
+#                   "y": 41,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 17
+#                 "id": 24
 #               },
 #               {
 #                 "type": "row",
@@ -799,11 +1071,11 @@
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 33,
+#                   "y": 49,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 18
+#                 "id": 25
 #               },
 #               {
 #                 "type": "stat",
@@ -843,11 +1115,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 34,
+#                   "y": 50,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 19
+#                 "id": 26
 #               },
 #               {
 #                 "type": "stat",
@@ -887,11 +1159,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 4,
-#                   "y": 34,
+#                   "y": 50,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 20
+#                 "id": 27
 #               },
 #               {
 #                 "type": "stat",
@@ -931,11 +1203,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 34,
+#                   "y": 50,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 21
+#                 "id": 28
 #               },
 #               {
 #                 "type": "stat",
@@ -975,11 +1247,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 34,
+#                   "y": 50,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 22
+#                 "id": 29
 #               },
 #               {
 #                 "type": "gauge",
@@ -1012,11 +1284,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 34,
+#                   "y": 50,
 #                   "w": 8,
 #                   "h": 6
 #                 },
-#                 "id": 23
+#                 "id": 30
 #               },
 #               {
 #                 "type": "timeseries",
@@ -1053,11 +1325,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 40,
+#                   "y": 56,
 #                   "w": 12,
 #                   "h": 9
 #                 },
-#                 "id": 24
+#                 "id": 31
 #               },
 #               {
 #                 "type": "timeseries",
@@ -1093,11 +1365,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 40,
+#                   "y": 56,
 #                   "w": 12,
 #                   "h": 9
 #                 },
-#                 "id": 25
+#                 "id": 32
 #               },
 #               {
 #                 "type": "row",
@@ -1105,11 +1377,11 @@
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 49,
+#                   "y": 65,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 26
+#                 "id": 33
 #               },
 #               {
 #                 "type": "stat",
@@ -1151,11 +1423,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 50,
+#                   "y": 66,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 27
+#                 "id": 34
 #               },
 #               {
 #                 "type": "stat",
@@ -1197,11 +1469,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 50,
+#                   "y": 66,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 28
+#                 "id": 35
 #               },
 #               {
 #                 "type": "stat",
@@ -1243,11 +1515,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 50,
+#                   "y": 66,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 29
+#                 "id": 36
 #               }
 #             ]
 #           }
@@ -1385,7 +1657,7 @@ data:
         "panels": [
           {
             "type": "row",
-            "title": "防いだ攻撃（この 24 時間）",
+            "title": "キーノート（資料とコメント）",
             "collapsed": false,
             "gridPos": {
               "x": 0,
@@ -1394,6 +1666,278 @@ data:
               "h": 1
             },
             "id": 1
+          },
+          {
+            "type": "stat",
+            "title": "この期間のリクエスト",
+            "description": "画面の期間に、資料とコメントに来たリクエストの数",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "decimals": 0,
+                "color": {
+                  "mode": "fixed",
+                  "fixedColor": "#e4007f"
+                }
+              }
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "area",
+              "textMode": "value_and_name",
+              "justifyMode": "center",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum by (app) (label_replace(increase(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[$__range]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
+                "instant": false,
+                "legendFormat": "{{app}}"
+              }
+            ],
+            "gridPos": {
+              "x": 0,
+              "y": 1,
+              "w": 6,
+              "h": 7
+            },
+            "id": 2
+          },
+          {
+            "type": "stat",
+            "title": "いちばん混んだ瞬間（回/秒）",
+            "description": "画面の期間で、1 秒あたりのリクエストがいちばん多かったとき",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "decimals": 0,
+                "color": {
+                  "mode": "fixed",
+                  "fixedColor": "#1f60c4"
+                }
+              }
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "area",
+              "textMode": "value_and_name",
+              "justifyMode": "center",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "max_over_time((sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))[$__range:15s])",
+                "instant": false,
+                "legendFormat": "{{app}}"
+              }
+            ],
+            "gridPos": {
+              "x": 6,
+              "y": 1,
+              "w": 6,
+              "h": 7
+            },
+            "id": 3
+          },
+          {
+            "type": "timeseries",
+            "title": "リクエスト（回/秒）",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps",
+                "custom": {
+                  "fillOpacity": 15,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum by (app) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))",
+                "legendFormat": "{{app}}"
+              }
+            ],
+            "gridPos": {
+              "x": 12,
+              "y": 1,
+              "w": 12,
+              "h": 7
+            },
+            "id": 4
+          },
+          {
+            "type": "timeseries",
+            "title": "ステータスコード（回/秒）",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps",
+                "custom": {
+                  "fillOpacity": 40,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "normal"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}} {{envoy_response_code_class}}xx",
+                "expr": "sum by (app, envoy_response_code_class) (label_replace(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[30s]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+              }
+            ],
+            "gridPos": {
+              "x": 0,
+              "y": 8,
+              "w": 8,
+              "h": 8
+            },
+            "id": 5
+          },
+          {
+            "type": "timeseries",
+            "title": "応答時間（p50 と p95）",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "ms",
+                "custom": {
+                  "fillOpacity": 15,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}} p50",
+                "expr": "histogram_quantile(0.5, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+              },
+              {
+                "refId": "B",
+                "legendFormat": "{{app}} p95",
+                "expr": "histogram_quantile(0.95, sum by (le, app) (label_replace(rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}[1m]), \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\")))"
+              }
+            ],
+            "gridPos": {
+              "x": 8,
+              "y": 8,
+              "w": 8,
+              "h": 8
+            },
+            "id": 6
+          },
+          {
+            "type": "timeseries",
+            "title": "処理中のリクエストと CPU",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "custom": {
+                  "fillOpacity": 15,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "legendFormat": "{{app}} 処理中",
+                "expr": "sum by (app) (label_replace(envoy_cluster_upstream_rq_active{envoy_cluster_name=~\"gateway/.+/app-(sanposhiho|comments)_.+\"}, \"app\", \"$1\", \"envoy_cluster_name\", \"gateway/[^/]+/app-([^_]+)_.+\"))"
+              },
+              {
+                "refId": "B",
+                "legendFormat": "{{app}} CPU（コア）",
+                "expr": "label_replace(sum by (namespace) (rate(container_cpu_usage_seconds_total{namespace=~\"app-(sanposhiho|comments)\", container!=\"\"}[1m])), \"app\", \"$1\", \"namespace\", \"app-(.*)\")"
+              }
+            ],
+            "gridPos": {
+              "x": 16,
+              "y": 8,
+              "w": 8,
+              "h": 8
+            },
+            "id": 7
+          },
+          {
+            "type": "row",
+            "title": "防いだ攻撃（この 24 時間）",
+            "collapsed": false,
+            "gridPos": {
+              "x": 0,
+              "y": 16,
+              "w": 24,
+              "h": 1
+            },
+            "id": 8
           },
           {
             "type": "stat",
@@ -1433,11 +1977,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 1,
+              "y": 17,
               "w": 6,
               "h": 7
             },
-            "id": 2
+            "id": 9
           },
           {
             "type": "stat",
@@ -1477,11 +2021,11 @@ data:
             ],
             "gridPos": {
               "x": 6,
-              "y": 1,
+              "y": 17,
               "w": 6,
               "h": 7
             },
-            "id": 3
+            "id": 10
           },
           {
             "type": "stat",
@@ -1521,11 +2065,11 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 1,
+              "y": 17,
               "w": 6,
               "h": 7
             },
-            "id": 4
+            "id": 11
           },
           {
             "type": "stat",
@@ -1565,11 +2109,11 @@ data:
             ],
             "gridPos": {
               "x": 18,
-              "y": 1,
+              "y": 17,
               "w": 6,
               "h": 7
             },
-            "id": 5
+            "id": 12
           },
           {
             "type": "bargauge",
@@ -1613,11 +2157,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 8,
+              "y": 24,
               "w": 10,
               "h": 8
             },
-            "id": 6
+            "id": 13
           },
           {
             "type": "timeseries",
@@ -1664,11 +2208,11 @@ data:
             ],
             "gridPos": {
               "x": 10,
-              "y": 8,
+              "y": 24,
               "w": 14,
               "h": 8
             },
-            "id": 7
+            "id": 14
           },
           {
             "type": "row",
@@ -1676,11 +2220,11 @@ data:
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 16,
+              "y": 32,
               "w": 24,
               "h": 1
             },
-            "id": 8
+            "id": 15
           },
           {
             "type": "gauge",
@@ -1731,11 +2275,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 17,
+              "y": 33,
               "w": 4,
               "h": 7
             },
-            "id": 9
+            "id": 16
           },
           {
             "type": "gauge",
@@ -1786,11 +2330,11 @@ data:
             ],
             "gridPos": {
               "x": 4,
-              "y": 17,
+              "y": 33,
               "w": 4,
               "h": 7
             },
-            "id": 10
+            "id": 17
           },
           {
             "type": "gauge",
@@ -1841,11 +2385,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 17,
+              "y": 33,
               "w": 4,
               "h": 7
             },
-            "id": 11
+            "id": 18
           },
           {
             "type": "gauge",
@@ -1896,11 +2440,11 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 17,
+              "y": 33,
               "w": 4,
               "h": 7
             },
-            "id": 12
+            "id": 19
           },
           {
             "type": "timeseries",
@@ -1941,11 +2485,11 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 17,
+              "y": 33,
               "w": 8,
               "h": 7
             },
-            "id": 13
+            "id": 20
           },
           {
             "type": "row",
@@ -1953,11 +2497,11 @@ data:
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 24,
+              "y": 40,
               "w": 24,
               "h": 1
             },
-            "id": 14
+            "id": 21
           },
           {
             "type": "bargauge",
@@ -1997,11 +2541,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 25,
+              "y": 41,
               "w": 8,
               "h": 8
             },
-            "id": 15
+            "id": 22
           },
           {
             "type": "bargauge",
@@ -2041,11 +2585,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 25,
+              "y": 41,
               "w": 8,
               "h": 8
             },
-            "id": 16
+            "id": 23
           },
           {
             "type": "bargauge",
@@ -2085,11 +2629,11 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 25,
+              "y": 41,
               "w": 8,
               "h": 8
             },
-            "id": 17
+            "id": 24
           },
           {
             "type": "row",
@@ -2097,11 +2641,11 @@ data:
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 33,
+              "y": 49,
               "w": 24,
               "h": 1
             },
-            "id": 18
+            "id": 25
           },
           {
             "type": "stat",
@@ -2141,11 +2685,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 34,
+              "y": 50,
               "w": 4,
               "h": 6
             },
-            "id": 19
+            "id": 26
           },
           {
             "type": "stat",
@@ -2185,11 +2729,11 @@ data:
             ],
             "gridPos": {
               "x": 4,
-              "y": 34,
+              "y": 50,
               "w": 4,
               "h": 6
             },
-            "id": 20
+            "id": 27
           },
           {
             "type": "stat",
@@ -2229,11 +2773,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 34,
+              "y": 50,
               "w": 4,
               "h": 6
             },
-            "id": 21
+            "id": 28
           },
           {
             "type": "stat",
@@ -2273,11 +2817,11 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 34,
+              "y": 50,
               "w": 4,
               "h": 6
             },
-            "id": 22
+            "id": 29
           },
           {
             "type": "gauge",
@@ -2310,11 +2854,11 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 34,
+              "y": 50,
               "w": 8,
               "h": 6
             },
-            "id": 23
+            "id": 30
           },
           {
             "type": "timeseries",
@@ -2351,11 +2895,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 40,
+              "y": 56,
               "w": 12,
               "h": 9
             },
-            "id": 24
+            "id": 31
           },
           {
             "type": "timeseries",
@@ -2391,11 +2935,11 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 40,
+              "y": 56,
               "w": 12,
               "h": 9
             },
-            "id": 25
+            "id": 32
           },
           {
             "type": "row",
@@ -2403,11 +2947,11 @@ data:
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 49,
+              "y": 65,
               "w": 24,
               "h": 1
             },
-            "id": 26
+            "id": 33
           },
           {
             "type": "stat",
@@ -2449,11 +2993,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 50,
+              "y": 66,
               "w": 8,
               "h": 4
             },
-            "id": 27
+            "id": 34
           },
           {
             "type": "stat",
@@ -2495,11 +3039,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 50,
+              "y": 66,
               "w": 8,
               "h": 4
             },
-            "id": 28
+            "id": 35
           },
           {
             "type": "stat",
@@ -2541,11 +3085,11 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 50,
+              "y": 66,
               "w": 8,
               "h": 4
             },
-            "id": 29
+            "id": 36
           }
         ]
       }
@@ -2633,9 +3177,9 @@ spec:
         app.kubernetes.io/version: "13.3.1"
       annotations:
         checksum/config: 0eb1f4d0ee770c7d886bbcaff3f353f2e94868186aac70cfe3c1e482b672ce6e
-        checksum/dashboards-json-config: 90c978ddca367fb51e3dbab3224ad432bbd894e8549d8fc3a3085b5365686f79
+        checksum/dashboards-json-config: f9ea4fea7b6170bad181b27423be576c2ec2c4d0f5b9fc732285002d2ae1bbf9
         checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
-        checksum/secret: 13a378c58948539ff7d1b67abdf88b3a35cbcb71366eb0cf9637489907e48f58
+        checksum/secret: 941fbe4340062422a618a5776ddc87cadfe2cc05fb3f013903ed0e0281ef3709
         kubectl.kubernetes.io/default-container: grafana
     spec:
       

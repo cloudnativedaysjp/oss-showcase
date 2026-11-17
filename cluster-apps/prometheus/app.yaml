@@ -87,6 +87,20 @@ data:
           - source_labels: [__name__, policy, event_type, namespace]
             regex: tetragon_policy_events_total;kill-unprivileged-user-namespace;.*;.*|tetragon_events_total;;PROCESS_EXEC;app-.+
             action: keep
+      # アプリごとのリクエスト数、ステータスコード、応答時間。キーノートを細かく見るため 5 秒ごとに取る
+      - job_name: envoy
+        scrape_interval: 5s
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            replacement: $1:9964
+            target_label: __address__
+        metric_relabel_configs:
+          - source_labels: [__name__, envoy_cluster_name]
+            regex: >-
+              envoy_cluster_(upstream_rq_xx|upstream_rq_time_bucket|upstream_cx_active|upstream_rq_active);gateway/.+/app-.+|envoy_http_downstream_cx_active;.*
+            action: keep
       - job_name: cilium
         kubernetes_sd_configs:
           - role: node
@@ -129,8 +143,9 @@ spec:
             # ConfigMap を変えたら、Pod を作り直さずに読み直す
             - --config.auto-reload
             - --storage.tsdb.path=/prometheus
-            - --storage.tsdb.retention.time=7d
-            - --storage.tsdb.retention.size=800MB
+            # キーノートを後から分析できるよう、会期のあいだ残す
+            - --storage.tsdb.retention.time=30d
+            - --storage.tsdb.retention.size=1800MB
             # Grafana の匿名の閲覧者も任意の PromQL を流せる。重いクエリで止まらないようにする
             - --query.timeout=10s
             - --query.max-samples=5000000
@@ -147,12 +162,12 @@ spec:
               drop: [ALL]
           resources:
             requests:
-              cpu: 50m
-              memory: 128Mi
+              cpu: 100m
+              memory: 512Mi
               ephemeral-storage: 64Mi
             limits:
               cpu: "1"
-              memory: 512Mi
+              memory: 1Gi
               ephemeral-storage: 1Gi
           volumeMounts:
             - name: config
@@ -176,7 +191,7 @@ spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi
 ---
 apiVersion: v1
 kind: Service
