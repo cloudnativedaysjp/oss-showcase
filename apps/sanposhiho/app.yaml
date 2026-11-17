@@ -49,13 +49,14 @@ spec:
               port: 8080
             periodSeconds: 20
           # requests と limits を揃えて、ノードが混んでも削られないようにする
+          # 更新のときに Pod が一時的に 2 つになっても、namespace の requests の上限（CPU 2 コア）に収まる値にする
           resources:
             requests:
-              cpu: 500m
-              memory: 256Mi
+              cpu: "1"
+              memory: 512Mi
             limits:
-              cpu: 500m
-              memory: 256Mi
+              cpu: "1"
+              memory: 512Mi
           volumeMounts:
             - name: app
               mountPath: /app
