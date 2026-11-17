@@ -14,7 +14,7 @@ spec:
         app: showcase-platform
       annotations:
         # configmap.yaml の SHA-256。subPath でマウントしたファイルは自動で更新されないので、変えたら Pod を作り直す
-        showcase.cloudnativedays.jp/configmap-sha256: 6fe34ea11068f6437fae831df759615579b0c696c7b50dc3ffadd216675a7a8c
+        showcase.cloudnativedays.jp/configmap-sha256: 4c4c6996c109d6ab58ecb937277d8dbac4d9c6ddc35e4eb819550f4fcea2d198
     spec:
       automountServiceAccountToken: false
       securityContext:

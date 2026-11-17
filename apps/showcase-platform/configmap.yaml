@@ -339,6 +339,20 @@ data:
     .skipped p { color: var(--muted); }
     @media (max-width: 720px) { .skipped { grid-template-columns: minmax(0, 1fr); } }
 
+    /* youki と runc の違い */
+    .diffs { margin-top: 2em; display: grid; gap: 18px; }
+    .diff { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: clamp(18px, 2.4vw, 26px); display: grid; gap: 12px; min-width: 0; }
+    .diff h3 { font-size: var(--step-1); font-weight: 900; }
+    .diff .cmp { overflow-x: auto; }
+    .diff table { min-width: 480px; }
+    .diff td.rt { font-family: var(--font-code); font-weight: 700; white-space: nowrap; }
+    .diff tr.ng td { color: var(--magenta); font-weight: 700; }
+    .diff .what { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+    .diff .what div { display: grid; gap: 2px; align-content: start; min-width: 0; }
+    .diff .what b { font-size: 0.85em; color: var(--blue); }
+    .diff .what p { color: var(--muted); }
+    @media (max-width: 720px) { .diff .what { grid-template-columns: 1fr; } }
+
     @media (prefers-reduced-motion: reduce) { .token, .lane { transition: none; } }
     </style>
     </head>
@@ -582,7 +596,38 @@ data:
     <div class="panel" role="tabpanel" id="p-youki" aria-labelledby="tab-youki" hidden>
     <section id="s-youki">
       <div class="sec-head"><span class="hex"></span><h2>コンテナランタイムは youki</h2></div>
-      <p class="lede">来場者の Pod は、Rust で書かれた youki で動いています。<br>本当は user namespace で root ごと無害にしたかったのですが、youki ではまだ使えず、代わりに Tetragon で止めています。</p>
+      <p class="lede">来場者の Pod は、Rust で書かれた youki で動いています。<br>runc と同じ OCI ランタイムですが、細かいところの挙動が違い、準備中に 2 つ踏みました。<br>どちらも、同じイメージと同じユーザーで、ランタイムだけを変えて比べています。</p>
+      <div class="diffs">
+        <article class="diff">
+          <h3>パーミッションが 0750 のバイナリを実行できない</h3>
+          <div class="cmp"><table>
+            <thead><tr><th>ランタイム</th><th>実行できるかの確かめ方</th><th>0750 のバイナリ</th></tr></thead>
+            <tbody>
+              <tr><td class="rt">runc</td><td>プロセスの権限で、実行できるかを確かめる</td><td>動く</td></tr>
+              <tr class="ng"><td class="rt">youki 0.7.0</td><td>「その他」の実行ビットだけを見る</td><td>拒否される</td></tr>
+            </tbody>
+          </table></div>
+          <div class="what">
+            <div><b>踏んだもの</b><p>CloudNativePG の PostgreSQL が起動しない。manager を 0750 で置いて実行するため。</p></div>
+            <div><b>対処</b><p>CloudNativePG の Pod だけ、runc で動かしている。</p></div>
+          </div>
+        </article>
+        <article class="diff">
+          <h3>標準エラー出力を開き直せない</h3>
+          <div class="cmp"><table>
+            <thead><tr><th>ランタイム</th><th>標準出力と標準エラー出力の持ち主</th><th>UID 101 で /dev/stderr に書く</th></tr></thead>
+            <tbody>
+              <tr><td class="rt">runc</td><td>コンテナのユーザー（101）に付け替える</td><td>書ける</td></tr>
+              <tr class="ng"><td class="rt">youki 0.7.0</td><td>root のまま</td><td>Permission denied</td></tr>
+            </tbody>
+          </table></div>
+          <div class="what">
+            <div><b>踏んだもの</b><p>nginx-unprivileged が起動しない。ログを <code>/dev/stderr</code> に書くため。このページ自身が落ちた。</p></div>
+            <div><b>対処</b><p>nginx に、標準エラー出力を開き直さずに書く設定を渡した。</p></div>
+          </div>
+        </article>
+      </div>
+      <p class="lede" style="margin-top:1.6em">本当は user namespace で root ごと無害にしたかったのですが、youki ではまだ使えず、代わりに Tetragon で止めています。<br>見つけた違いは、再現手順を付けて youki に報告します。</p>
     </section>
     <div class="pager"><button type="button" data-go="agent">前へ：エージェント</button></div>
     </div>
