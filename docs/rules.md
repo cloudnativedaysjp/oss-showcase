@@ -35,7 +35,7 @@ YAML は `apps/<OSS の名前>/` の直下に置いてください。サブデ�
 - ServiceAccount のトークンは、既定ではマウントされません。API サーバを使うアプリは、自分の ServiceAccount を作るか、Pod に `automountServiceAccountToken: true` を書いてください
 - 書かれていなければ、`seccompProfile: RuntimeDefault` と `allowPrivilegeEscalation: false` が付きます。sudo のように実行中に権限を上げる処理は動きません
 - user namespace を作ろうとしたプロセスは止められます。Chromium のサンドボックスのように user namespace を使う OSS は動きません
-- `priorityClassName` は書けません
+- `priorityClassName` は書けません。キーノートで使うアプリだけ、運営が `showcase-keynote` を許しています
 
 ### 権限
 

@@ -34,6 +34,8 @@ APP_KINDS = {
 REGISTRIES = {"docker.io", "index.docker.io", "ghcr.io", "quay.io", "registry.k8s.io", "gcr.io",
               "mirror.gcr.io", "public.ecr.aws", "mcr.microsoft.com", "registry.gitlab.com"}
 # oss-showcase-platform の policies/volume.yaml と揃える
+# キーノートで使うアプリ。運営の VAP（policies/priority.yaml）と同じものを書く
+KEYNOTE = {"comments", "sanposhiho"}
 VOLUMES = {"configMap", "secret", "emptyDir", "projected", "downwardAPI", "persistentVolumeClaim", "ephemeral", "image"}
 
 
@@ -151,7 +153,7 @@ def check(root: Path) -> list[str]:
                         for sel in (doc.get("aggregationRule") or {}).get("clusterRoleSelectors") or []:
                             if any(k.startswith(("rbac.authorization.k8s.io/", "kubernetes.io/")) for k in sel.get("matchLabels") or {}):
                                 errors.append(f"{where}: 組み込みの ClusterRole は aggregate できません")
-                    if any(isinstance(v, str) and v for v in keys(spec, "priorityClassName")):
+                    if any(isinstance(v, str) and v and not (v == "showcase-keynote" and name in KEYNOTE) for v in keys(spec, "priorityClassName")):
                         errors.append(f"{where}: priorityClassName は使えません。消してください")
                     images = [i for i in keys(spec, "image") if isinstance(i, str)]
                     images += [i.get("reference", "") for i in keys(spec, "image") if isinstance(i, dict)]
