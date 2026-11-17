@@ -1,0 +1,74 @@
+# showcase/render.py が生成。静的な資料の配信用テナント。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sanposhiho
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sanposhiho
+  template:
+    metadata:
+      labels:
+        app: sanposhiho
+      annotations:
+        slides/code-sha256: "3bc0b1702940739cfb0d03da843e8b3e5ee61fbc2f6e73285def9b95de5e7c60"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: node:22-alpine
+          command: ["node", "/app/server.js"]
+          env:
+            - name: PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: sanposhiho
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sanposhiho
+spec:
+  selector:
+    app: sanposhiho
+  ports:
+    - port: 80
+      targetPort: 8080
