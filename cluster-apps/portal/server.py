@@ -21,6 +21,8 @@ TTL = 10
 
 # CloudNative Days のロゴの 2 色。アプリ名から決め、同じアプリはいつも同じ色にする
 TILE_COLORS = ('blue', 'magenta')
+# キーノートで使うアプリ。先頭に並べ、アプリ名の代わりに何ができるかを出す。check.py の KEYNOTE と揃える
+KEYNOTE = {'sanposhiho': 'スライド<br>資料', 'comments': 'コメント<br>を送る'}
 MASCOTS = 'https://cloudnativedays.jp/images/mascots'
 REPO = 'https://github.com/cloudnativedaysjp/oss-showcase'
 # github.com/cloudnativedaysjp/oss-showcase を指す QR コード。qrencode -t SVG で作った
@@ -80,6 +82,9 @@ a.hex:focus-visible::after { inset: calc(var(--s) * -.04); z-index: -2; backgrou
 .name { min-inline-size: 0; font-weight: 700; line-height: 1.15; font-size: calc(var(--s) * .125); overflow-wrap: anywhere;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .name.long { font-size: calc(var(--s) * .085); }
+/* キーノートのタイル。ほかのアプリと色を変え、小さな見出しを付ける */
+.keynote { --tile: var(--ink); }
+.keynote small { display: block; color: var(--orange); font-weight: 700; letter-spacing: .08em; font-size: calc(var(--s) * .075); }
 
 /* 動いているアプリの数。蜂の巣の最初の 1 枚にする */
 .count { --tile: var(--orange); color: var(--ink); }
@@ -213,11 +218,17 @@ def hosts() -> list[str]:
 
 def page(names: list[str]) -> str:
     tiles = [f'<li style="--i:0"><div class="hex count"><b>{len(names)}</b><span>動いている<br>アプリ</span></div></li>']
-    for i, h in enumerate(names, start=1):
+    # キーノートのアプリを KEYNOTE の順で先頭に寄せる。sorted は安定なので、ほかの並びは変わらない
+    order = list(KEYNOTE)
+    ordered = sorted(names, key=lambda h: order.index(n) if (n := h.split(".")[0]) in KEYNOTE else len(order))
+    for i, h in enumerate(ordered, start=1):
         name = h.split(".")[0]
-        tiles.append(
-            f'<li style="--i:{i}"><a class="hex {TILE_COLORS[zlib.crc32(h.encode()) % 2]}" href="https://{html.escape(h)}/">'
-            f'<span class="name{" long" if len(name) > 13 else ""}">{html.escape(name)}</span></a></li>')
+        if name in KEYNOTE:
+            cls, label = "keynote", f'<span class="name"><small>KEYNOTE</small>{KEYNOTE[name]}</span>'
+        else:
+            cls = TILE_COLORS[zlib.crc32(h.encode()) % 2]
+            label = f'<span class="name{" long" if len(name) > 13 else ""}">{html.escape(name)}</span>'
+        tiles.append(f'<li style="--i:{i}"><a class="hex {cls}" href="https://{html.escape(h)}/">{label}</a></li>')
     label = "最初の<br>1 枚に" if not names else "あなたの<br>アプリ"
     tiles.append(f'<li style="--i:{len(names) + 1}"><a class="hex invite" href="{REPO}">'
                  f'<span class="name"><span class="plus">＋</span>{label}</span></a></li>')

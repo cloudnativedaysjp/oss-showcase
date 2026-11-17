@@ -43,4 +43,8 @@ assert len(calls) == 1, calls
 # 名前は HTML としてエスケープする
 out = portal.page(['"><script>x</script>.showcase.cloudnativedays.jp'])
 assert "<script>x" not in out and "&lt;script&gt;" in out
+
+# キーノートのアプリは、ほかのアプリより先に、キーノートの見た目で並べる
+out = portal.page(["a.showcase.cloudnativedays.jp", "sanposhiho.showcase.cloudnativedays.jp"])
+assert out.index("sanposhiho.") < out.index("a.showcase") and 'class="hex keynote"' in out
 print("ok")
