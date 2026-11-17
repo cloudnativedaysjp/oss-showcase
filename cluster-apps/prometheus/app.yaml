@@ -126,10 +126,10 @@ spec:
           image: prom/prometheus:v3.16.0-distroless@sha256:e8b8fb0e336fe0affce6f9ea347b11d24975465fd3ba8119420186679c3efd5f
           args:
             - --config.file=/etc/prometheus/prometheus.yml
-            # ConfigMap を変えたら、Pod を作り直さずに読み直す。作り直すと emptyDir のデータが消える
+            # ConfigMap を変えたら、Pod を作り直さずに読み直す
             - --config.auto-reload
             - --storage.tsdb.path=/prometheus
-            - --storage.tsdb.retention.time=1d
+            - --storage.tsdb.retention.time=7d
             - --storage.tsdb.retention.size=800MB
             # Grafana の匿名の閲覧者も任意の PromQL を流せる。重いクエリで止まらないようにする
             - --query.timeout=10s
@@ -163,9 +163,20 @@ spec:
         - name: config
           configMap:
             name: prometheus
+        # Pod を作り直しても、キーノートなどのデータを残す
         - name: data
-          emptyDir:
-            sizeLimit: 1Gi
+          persistentVolumeClaim:
+            claimName: prometheus
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
