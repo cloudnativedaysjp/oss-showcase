@@ -17,7 +17,7 @@ spec:
         app: comments
       annotations:
         # コードが変わったら Pod を作り直すための印
-        comments/code-sha256: "a8f9dc3b6eaf37f74a38442aa70184efc98a0aae2089fc781849943bdbb1d0ad"
+        comments/code-sha256: "d2e4e54b89e0500040c43b7aef77c369d669025ee0ef68e43cbf974e511b7dd7"
     spec:
       # キーノートで使う。ノードが混んでも、来場者のアプリより先に動かす
       priorityClassName: showcase-keynote
