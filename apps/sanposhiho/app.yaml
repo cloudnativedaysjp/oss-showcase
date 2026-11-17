@@ -14,7 +14,7 @@ spec:
       labels:
         app: sanposhiho
       annotations:
-        slides/code-sha256: "3bc0b1702940739cfb0d03da843e8b3e5ee61fbc2f6e73285def9b95de5e7c60"
+        slides/code-sha256: "56f27d4a6314bfc1f32025fac8f3032a7743bc89e2f4c8ea1dac4429c4b3fa58"
     spec:
       # キーノートで使う。ノードが混んでも、来場者のアプリより先に動かす
       priorityClassName: showcase-keynote

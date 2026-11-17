@@ -111,7 +111,7 @@ data:
     }
 
     /* ---------- 盤面 ---------- */
-    #stage { position: fixed; inset: 0; overflow: hidden; background: #0A1228; }
+    #stage { position: fixed; inset: 0 0 var(--comment-bar-height, 0px); overflow: hidden; background: #0A1228; }
     #deck {
       position: absolute; left: 0; top: 0;
       width: 1920px; height: 1080px;
@@ -399,7 +399,7 @@ data:
     .callout.c2 { border-color: var(--amber); } .callout.c3 { border-color: var(--rose); }
 
     /* 現在地（リリースごとの段階） */
-    .road { position: absolute; left: 96px; right: 96px; top: 252px; display: grid; grid-template-columns: 560px repeat(4, 1fr); column-gap: 10px; row-gap: 18px; align-items: center; }
+    .road { position: absolute; left: 96px; right: 96px; top: 252px; display: grid; grid-template-columns: 560px repeat(4, 1fr); column-gap: 10px; row-gap: 14px; align-items: center; }
     .road .vh { text-align: center; font-size: 34px; font-weight: 700; line-height: 1.25; padding-bottom: 8px; }
     .road .vh small { display: block; font-size: 26px; font-weight: 500; color: var(--ink-2); }
     /* v1.38 の列（.next）は少し右に寄せ、手前に「いまここ」の線を通す */
@@ -409,7 +409,7 @@ data:
     .road .nowline span { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -8px); background: var(--k8s); color: #fff;
       font-size: 24px; font-weight: 700; line-height: 1; padding: 9px 18px 10px; border-radius: 999px; white-space: nowrap; }
     .road .f { font-size: 34px; font-weight: 700; line-height: 1.25; }
-    .road .cell { height: 76px; border-radius: 16px; display: grid; place-items: center; font-size: 30px; font-weight: 700; }
+    .road .cell { height: 68px; border-radius: 16px; display: grid; place-items: center; font-size: 30px; font-weight: 700; }
     .road .none { background: transparent; border: 3px dashed #D3DBEC; }
     .road .al { background: #DCE6FB; color: #2A4FA8; }
     .road .be { background: #5C8CEB; color: #fff; }
@@ -497,7 +497,7 @@ data:
     .closing h1 { top: 330px; font-size: 168px; letter-spacing: 0; }
 
     /* ---------- 操作まわり（スライドの外） ---------- */
-    #tools { position: fixed; right: 14px; bottom: 14px; display: flex; gap: 8px; z-index: 50; opacity: 0; transition: opacity .25s linear; }
+    #tools { position: fixed; right: 14px; bottom: calc(14px + var(--comment-bar-height, 0px)); display: flex; gap: 8px; z-index: 50; opacity: 0; transition: opacity .25s linear; }
     #tools.show { opacity: 1; }
     #tools button { font: 600 14px var(--font-display); color: #fff; background: rgba(14, 26, 58, .82); border: 1px solid rgba(255,255,255,.25);
       border-radius: 10px; padding: 10px 14px; cursor: pointer; min-width: 44px; min-height: 44px; }
@@ -532,14 +532,19 @@ data:
     #ov button.cur { border-color: #8FB0FF; background: #1F3166; }
     #ov button b { color: #8FB0FF; font-variant-numeric: tabular-nums; flex: none; }
     #ov button small { display: block; color: #9FB3E6; font-size: 12px; }
-    /* ---------- コメント（スライドの上を流れる） ---------- */
-    #cm { position: absolute; inset: 0; z-index: 30; overflow: hidden; pointer-events: none; }
-    #cm .c { position: absolute; left: 0; top: 0; white-space: nowrap; font: 700 46px/1.2 var(--font-display); color: #fff; opacity: .93; will-change: transform;
-      transform: translateX(1920px); }
-    /* 白い文字に濃いふち（スライドの文字と見分けがつくように）。ふちは、同じ文字を後ろに太く描いて作る */
-    #cm .c::before { content: attr(data-t); position: absolute; left: 0; top: 0; z-index: -1; color: #0E1A3A; -webkit-text-stroke: 9px #0E1A3A; }
-    /* 投稿用と資料用のQRコード。コメントの層より手前に置き、読み取りを妨げない。
-       投稿用だけは、サーバに繋がっていてコメントを表示・受付しているあいだに出す。 */
+    /* ---------- コメント専用バー（スライドの表示領域とは分離） ---------- */
+    body.cm-live { --comment-bar-height: clamp(36px, 5vh, 56px); }
+    #cm { position: fixed; left: 0; right: 0; bottom: 0; height: var(--comment-bar-height, 0px); display: none;
+      overflow: hidden; background: #101D3C; color: #fff; border-top: 1px solid #33466E; }
+    body.cm-live #cm { display: flex; }
+    #cm .cm-label { flex: none; display: flex; align-items: center; padding: 0 18px; border-right: 1px solid #33466E;
+      font: 600 clamp(12px, 1.7vh, 18px)/1 var(--font-display); color: #9FB9F2; }
+    #cm-track { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; }
+    #cm .c { position: absolute; left: 18px; top: 0; display: flex; align-items: center; height: 100%; width: max-content;
+      white-space: nowrap; font: 600 clamp(16px, 2.7vh, 28px)/1.2 var(--font-display); color: #fff; }
+    #cm .c.q { color: #FFD479; }
+    #cm .c .cm-name { color: #BFC4CE; }
+    /* 投稿用と資料用のQRコード。投稿用だけは、サーバに繋がっていてコメントを表示・受付しているあいだに出す。 */
     .qr-links { position: absolute; z-index: 35; right: 96px; top: 64px; display: flex; flex-direction: column; gap: 16px; }
     .qr-card { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 360px; padding: 16px; border-radius: 26px;
       background: var(--surface); border: 3px solid var(--line); color: var(--ink); text-align: center; text-decoration: none; }
@@ -559,12 +564,12 @@ data:
     .slide[data-key="me"] .qr-card .qr { width: 264px; height: 264px; }
     .slide[data-key="me"] .qr-card b { font-size: 28px; }
     .slide[data-key="me"] .qr-card span { font-size: 16px; }
-    #toast { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); z-index: 55; padding: 10px 18px; border-radius: 10px; background: rgba(14, 26, 58, .9); color: #fff;
+    #toast { position: fixed; left: 50%; bottom: calc(64px + var(--comment-bar-height, 0px)); transform: translateX(-50%); z-index: 55; padding: 10px 18px; border-radius: 10px; background: rgba(14, 26, 58, .9); color: #fff;
       font: 600 16px var(--font-display); opacity: 0; pointer-events: none; transition: opacity .2s linear; }
     #toast.show { opacity: 1; }
     #blank { position: fixed; inset: 0; background: #000; z-index: 70; display: none; }
     #blank.show { display: block; }
-    #help { position: fixed; left: 14px; bottom: 14px; z-index: 50; color: #C9D4EE; background: rgba(14, 26, 58, .82); border-radius: 10px; padding: 10px 14px;
+    #help { position: fixed; left: 14px; bottom: calc(14px + var(--comment-bar-height, 0px)); z-index: 50; color: #C9D4EE; background: rgba(14, 26, 58, .82); border-radius: 10px; padding: 10px 14px;
       font-size: 13px; line-height: 1.6; opacity: 0; transition: opacity .25s linear; pointer-events: none; }
     #help.show { opacity: 1; }
 
@@ -967,7 +972,10 @@ data:
     <!-- 24 -->
     <section class="slide" data-key="roadmap" data-title="現在地：どこまで来たか" data-part="Workload-aware Scheduling">
       <h2 class="hl">v1.35で始まり、v1.38では主な機能がBetaにそろう</h2>
-      <!-- v1.38 の列は、開発ブランチ（master）の feature gate と API の状態に合わせる。
+      <!-- v1.38 の列は、2026-11-17 時点の kubernetes/kubernetes master（67dc8f12b970187a4b3f888328be62723714fb3a）の feature gate と API の状態。
+           Workload / Gang: KEP-4671、独立した PodGroup API: KEP-5832（v1.36）→ KEP-4671 に統合。
+           Preemption: KEP-5710、Topology: KEP-5732、CompositePodGroup: KEP-6012、Job: KEP-5547 / 6089。
+           Job 連携の Beta 昇格: https://github.com/kubernetes/kubernetes/pull/143188
            GA になったら class を「cell ga next」、文字を GA に。Beta は「cell be next」、Alpha は「cell al next」 -->
       <div class="road">
         <div></div>
@@ -976,8 +984,11 @@ data:
         <div class="vh">v1.37<small>2026年8月</small></div>
         <div class="vh next">v1.38<small>2026年12月予定</small></div>
 
-        <div class="f">Workload / PodGroup API<br>Gang Scheduling</div>
+        <div class="f">Workload API<br>Gang Scheduling</div>
         <div class="cell al">Alpha</div><div class="cell al">Alpha</div><div class="cell be">Beta</div><div class="cell be next">Beta</div>
+
+        <div class="f">独立したPodGroup API</div>
+        <div class="cell none"></div><div class="cell al">Alpha</div><div class="cell be">Beta</div><div class="cell be next">Beta</div>
 
         <div class="f">Workload-Aware Preemption</div>
         <div class="cell none"></div><div class="cell al">Alpha</div><div class="cell be">Beta</div><div class="cell be next">Beta</div>
@@ -989,13 +1000,13 @@ data:
         <div class="cell none"></div><div class="cell none"></div><div class="cell al">Alpha</div><div class="cell be next">Beta</div>
 
         <div class="f">Jobとの連携</div>
-        <div class="cell none"></div><div class="cell al">Alpha</div><div class="cell al">Alpha</div><div class="cell al next">Alpha</div>
+        <div class="cell none"></div><div class="cell al">Alpha</div><div class="cell al">Alpha</div><div class="cell be next">Beta</div>
 
         <div class="nowline"><span>いまここ</span></div>
       </div>
       <div class="road-foot">
         ほかにも　<span class="chip jp">DRA：PodGroupでデバイスを共有</span><span class="chip jp">Opportunistic Batching</span><span class="chip jp">Kueue・Cluster Autoscalerとの連携</span>
-        <div style="margin-top:12px;font-size:26px">v1.38 の列は、11月15日時点の開発ブランチの内容です。Beta の機能も、まだデフォルトでは無効です</div>
+        <div style="margin-top:12px;font-size:26px">v1.38は2026年11月17日時点の開発版です。表中のBeta機能もデフォルトでは無効です</div>
       </div>
     </section>
 
@@ -1023,6 +1034,11 @@ data:
       <div id="rail"><span class="part" id="rail-part"></span><span class="track" id="rail-track"></span><span class="dots" id="rail-dots"></span><span class="page" id="rail-page"></span><div class="bar"><i id="rail-bar"></i></div></div>
     </div>
     </div>
+
+    <aside id="cm" aria-label="コメントバー">
+      <span class="cm-label">コメント</span>
+      <div id="cm-track" aria-hidden="true"></div>
+    </aside>
 
     <div id="ov"><h2>スライド一覧（選ぶと移動、Esc で閉じる）</h2><div class="grid" id="ov-grid"></div></div>
     <div id="blank"></div>
@@ -1413,68 +1429,86 @@ data:
         toolsTimer = setTimeout(() => { $('tools').classList.remove('show'); $('help').classList.remove('show'); }, 2800);
       }
 
-      /* ---------- コメント（会場からの投稿を、スライドの上に右から左へ流す） ----------
+      /* ---------- コメント（スライドとは別の下部バーに、1件ずつ表示する） ----------
          <body data-comments="https://…"> のサーバを1秒おきに読みに行く。?comments=URL で差し替え、?comments=off で無効。
          サーバに繋がらないあいだは何も出さない（投稿用QRコードも出さない）。発表はそのまま続けられる。
-         C キーで、流れているコメントと投稿用QRコードをまとめて消す／戻す。資料用QRコードは常に出す */
-      const CM = { url: '', on: true, live: false, paused: false, since: null, epoch: null, fail: 0, queue: [], lanes: [], lastLane: -1, count: 0, layer: null, log: [] };
-      const CM_LANE = 74, CM_LANES = 8, CM_DUR = 7000, CM_MAX = 12, CM_GAP = 70, CM_QUEUE = 12;   // 待ちが長いと、話が進んだあとに遅れて出てしまうので、待たせる数は少なくする
-      // 流す範囲は、見出しの下から下の一言の上まで（図に使っている範囲と同じ）。見出しと一言には重ねない
-      function cmArea() {
-        const a = slides[cur] && slides[cur]._area;
-        const top = a ? a.y0 + 8 : 270, bottom = a ? a.y1 - 6 : 880;
-        return { top, n: clamp(Math.floor((bottom - top) / CM_LANE), 1, CM_LANES) };
-      }
+         C キーで、コメントと投稿用QRコードをまとめて消す／戻す。資料用QRコードは常に出す */
+      const CM = { url: '', on: true, live: false, paused: false, since: null, epoch: null, fail: 0, queue: [], current: null, currentComment: null, animation: null, timer: null, layer: null, log: [] };
+      const CM_DUR = 7000, CM_HOLD = 2000, CM_SPEED = 60, CM_QUEUE = 3;
+      // 通常は7秒静止。長文だけ毎秒60pxで送り、先頭・末尾を各2秒止める。表示待ちは手入力を優先して3件。
       function cmPaint() {
-        document.body.classList.toggle('cm-live', CM.on && CM.live && !CM.paused);
+        const live = CM.on && CM.live && !CM.paused;
+        const changed = document.body.classList.contains('cm-live') !== live;
+        document.body.classList.toggle('cm-live', live);
+        if (changed) fit();   // バーの高さを除いた領域に、縦横比を保ってスライドを収める。
+        if (live) cmPump();
+        // 待ち枠を超えたら、定型コメントを古い順に外す。手入力だけなら、その中で最新を残す。
+        while (CM.queue.length > CM_QUEUE) {
+          const quick = CM.queue.findIndex(c => c.quick);
+          CM.queue.splice(quick < 0 ? 0 : quick, 1);
+        }
       }
       function cmClear() {
-        CM.queue = []; CM.lanes = []; CM.lastLane = -1; CM.count = 0;
-        if (CM.layer) CM.layer.textContent = '';
+        CM.queue = [];
+        cmStopCurrent();
       }
-      // 重ならずに流せる行からランダムに選ぶ。候補が複数あれば、直前と同じ行は避ける。置けなければ false
-      function cmPlace(text) {
-        const e = document.createElement('div'); e.className = 'c'; e.textContent = text; e.dataset.t = text;
-        CM.layer.appendChild(e);
-        const w = e.offsetWidth, now = performance.now(), speed = (W + w) / CM_DUR, area = cmArea();
-        const available = [];
-        for (let i = 0; i < area.n; i++) {
-          const L = CM.lanes[i];
-          if (L) {
-            const entered = (now - L.t0) * L.speed >= L.w + CM_GAP;   // 前のコメントが、右端から入り切ったか
-            const catches = now + W / speed < L.t0 + CM_DUR;           // 前のコメントが消える前に、追いついてしまうか
-            if (!entered || catches) continue;
-          }
-          available.push(i);
+      function cmStopCurrent() {
+        clearTimeout(CM.timer); CM.timer = null;
+        if (CM.animation) { CM.animation.onfinish = null; CM.animation.cancel(); CM.animation = null; }
+        if (CM.current) { CM.current.remove(); CM.current = null; }
+        CM.currentComment = null;
+      }
+      function cmResize() {
+        if (!CM.current) return;
+        CM.queue.unshift(CM.currentComment);
+        cmStopCurrent(); cmPump(true);   // 画面幅が変わっても、表示中のコメントは割り込まず先頭から表示する。
+      }
+      // 前の1件が消えたら次を表示する。行の選択や、コメント同士の位置・速度の比較はしない。
+      function cmPump(resume = false) {
+        if (!CM.layer || CM.current || !CM.queue.length || !document.body.classList.contains('cm-live')) return;
+        const typed = resume ? -1 : CM.queue.findIndex(c => !c.quick);
+        const [c] = CM.queue.splice(typed < 0 ? 0 : typed, 1);   // 次の1件は手入力を優先。同じ種類では到着順。
+        const e = document.createElement('div'); e.className = 'c' + (cmIsQ(c.t) ? ' q' : '');
+        const name = cmName(c);
+        if (name) {
+          const author = document.createElement('span'); author.className = 'cm-name'; author.textContent = name;
+          e.appendChild(author);
         }
-        if (!available.length) { e.remove(); return false; }
-        const choices = available.length > 1 ? available.filter(i => i !== CM.lastLane) : available;
-        const i = choices[Math.floor(Math.random() * choices.length)];
-        CM.lastLane = i;
-        CM.lanes[i] = { t0: now, w, speed };
-        e.style.top = (area.top + i * CM_LANE) + 'px';
-        CM.count++;
-        const done = () => { if (e.parentNode) { e.remove(); CM.count = Math.max(0, CM.count - 1); cmPump(); } };
-        if (e.animate) e.animate([{ transform: `translateX(${W}px)` }, { transform: `translateX(${-w}px)` }], { duration: CM_DUR, easing: 'linear', fill: 'forwards' }).onfinish = done;
-        else setTimeout(done, 3000);
-        return true;
+        e.appendChild(document.createTextNode((name ? ': ' : '') + c.t));
+        CM.current = e; CM.currentComment = c;
+        CM.layer.appendChild(e);
+        const done = () => {
+          if (CM.current !== e) return;
+          e.remove(); CM.current = null; CM.currentComment = null; CM.animation = null; CM.timer = null;
+          cmPump();
+        };
+        const overflow = Math.max(0, e.offsetWidth - (CM.layer.clientWidth - 36));   // 左右に18pxの余白。
+        if (overflow > 0 && e.animate) {
+          const duration = Math.max(CM_DUR, CM_HOLD * 2 + overflow / CM_SPEED * 1000);
+          const end = `translateX(-${overflow}px)`;
+          CM.animation = e.animate([
+            { transform: 'translateX(0)', offset: 0 },
+            { transform: 'translateX(0)', offset: CM_HOLD / duration },
+            { transform: end, offset: 1 - CM_HOLD / duration },
+            { transform: end, offset: 1 },
+          ], { duration, easing: 'linear', fill: 'forwards' });
+          CM.animation.onfinish = done;
+        } else {
+          CM.timer = setTimeout(done, CM_DUR);
+        }
       }
-      function cmPump() {
-        clearTimeout(CM.pump);
-        while (CM.queue.length && CM.count < CM_MAX && cmPlace(CM.queue[0])) CM.queue.shift();
-        if (CM.queue.length) CM.pump = setTimeout(cmPump, 250);
+      function cmAdd(c) {
+        if (!CM.on || CM.paused || !CM.layer || !c || typeof c.t !== 'string' || !c.t) return;
+        CM.queue.push({ t: c.t.slice(0, 80), name: cmName(c), quick: c.quick === true });
+        // 今回受信した分をすべて入れてから cmPaint で選ぶ。同じ受信内でも手入力を優先する。
       }
-      function cmAdd(text) {
-        if (!CM.on || CM.paused || !CM.layer || typeof text !== 'string' || !text) return;
-        CM.queue.push(text.slice(0, 80));
-        if (CM.queue.length > CM_QUEUE) CM.queue.splice(0, CM.queue.length - CM_QUEUE);   // たまりすぎたら古いものから捨てる
-        cmPump();
-      }
-      /* 受け取ったコメントの記録。流れて消えたあとも、一覧で見返せるようにする（質問を見逃さないため）。
+      /* 受け取ったコメントの記録。表示が消えたあとも、一覧で見返せるようにする（質問を見逃さないため）。
          表示を消しているあいだ（C）に届いた分も記録する。このブラウザの中に残るので、開き直しても消えない。
          スライドを開いていなかった間の投稿は、ここには入らない（サーバの管理ページで見られる） */
       const CM_LS = 'cndw2026-comments-v1', CM_KEEP = 2000;
       const cmIsQ = t => /[?？]/.test(t);
+      const cmName = c => typeof c.name === 'string' ? [...c.name.trim()].slice(0, 20).join('') : '';
+      const cmDisplay = c => (cmName(c) ? cmName(c) + ': ' : '') + c.t;
       const hms = at => { const d = new Date(at), p = n => String(n).padStart(2, '0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
       function cmLoadLog() {
         try { const a = JSON.parse(localStorage.getItem(CM_LS) || '[]'); if (Array.isArray(a)) CM.log = a.filter(c => c && typeof c.t === 'string' && Number.isFinite(c.at)).slice(-CM_KEEP); }
@@ -1488,7 +1522,7 @@ data:
         if (!c || typeof c.t !== 'string' || !c.t) return false;
         const id = Number(c.id) || 0, last = CM.log.length ? CM.log[CM.log.length - 1].id : 0;
         if (id && id <= last) return false;   // 同じものを二度入れない
-        CM.log.push({ id: id || Date.now(), t: c.t.slice(0, 80), at: Date.now(), n: cur + 1 });
+        CM.log.push({ id: id || Date.now(), t: c.t.slice(0, 80), name: cmName(c), quick: c.quick === true, at: Date.now(), n: cur + 1 });
         if (CM.log.length > CM_KEEP) CM.log.splice(0, CM.log.length - CM_KEEP);
         return true;
       }
@@ -1503,11 +1537,11 @@ data:
       function cmDrawList(toEnd) {
         const ol = $('cl-list'), a = cmShown(), stick = toEnd || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8;
         $('cl-h').textContent = `コメント一覧（${CM.log.length}件${$('cl-q').checked ? `、うち「？」を含むもの ${a.length}件` : ''}）`;
-        ol.innerHTML = a.length ? a.map(c => `<li${cmIsQ(c.t) ? ' class="q"' : ''}><time>${hms(c.at)}</time><i>${c.n}枚目</i><span>${esc(c.t)}</span></li>`).join('')
+        ol.innerHTML = a.length ? a.map(c => `<li${cmIsQ(c.t) ? ' class="q"' : ''}><time>${hms(c.at)}</time><i>${c.n}枚目</i><span>${esc(cmDisplay(c))}</span></li>`).join('')
           : '<li class="none">まだありません</li>';
         if (stick) ol.scrollTop = ol.scrollHeight;   // いちばん新しいものが見える位置に
       }
-      const cmText = () => '時刻\tスライド\tコメント\n' + cmShown().map(c => `${hms(c.at)}\t${c.n}\t${c.t}`).join('\n') + '\n';
+      const cmText = () => '時刻\tスライド\t名前\tコメント\n' + cmShown().map(c => `${hms(c.at)}\t${c.n}\t${cmName(c)}\t${c.t}`).join('\n') + '\n';
       function cmOpenList() {
         if (!CM.url) return;
         const cl = $('cl');
@@ -1564,7 +1598,7 @@ data:
           if (CM.paused) cmClear();
           if (Number.isFinite(j.last)) CM.since = j.last;
           let got = 0;
-          (j.items || []).forEach(c => { if (cmLog(c)) got++; cmAdd(c && c.t); });
+          (j.items || []).forEach(c => { if (cmLog(c)) got++; cmAdd(c); });
           if (got) { cmSaveLog(); cmListPaint(); }
         } catch (e) {
           CM.fail++;
@@ -1592,8 +1626,7 @@ data:
         try { const q = new URLSearchParams(location.search).get('comments'); if (q != null) url = q; } catch (e) { /* そのまま */ }
         if (!url || url === 'off' || !/^https?:\/\//.test(url) || !window.fetch) return;
         CM.url = url.replace(/\/+$/, '');
-        CM.layer = document.createElement('div'); CM.layer.id = 'cm'; CM.layer.setAttribute('aria-hidden', 'true');
-        deck.appendChild(CM.layer);
+        CM.layer = $('cm-track');
         cmLoadLog();
         $('cl').addEventListener('click', e => {
           const b = e.target.closest('[data-act]'); if (!b) { if (e.target === $('cl')) cmCloseList(); return; }
@@ -1627,7 +1660,7 @@ data:
         buildOverview();
         initComments();
         fit();
-        addEventListener('resize', fit);
+        addEventListener('resize', () => { fit(); cmResize(); });
         addEventListener('orientationchange', fit);
         if (window.ResizeObserver) new ResizeObserver(fit).observe($('stage'));
         addEventListener('keydown', onKey);
