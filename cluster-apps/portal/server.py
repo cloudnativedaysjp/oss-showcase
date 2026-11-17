@@ -151,7 +151,7 @@ setInterval(async () => {
   if (busy) return;
   busy = true;
   try {
-    const res = await fetch(location.pathname, { cache: "no-store", signal: AbortSignal.timeout(10000) });
+    const res = await fetch(location.pathname + location.search, { cache: "no-store", signal: AbortSignal.timeout(10000) });
     if (!res.ok) return;
     const fresh = new DOMParser().parseFromString(await res.text(), "text/html").getElementById("hive");
     const cur = document.getElementById("hive");
@@ -277,7 +277,8 @@ ERROR = """<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        path = urllib.parse.urlsplit(self.path).path
+        url = urllib.parse.urlsplit(self.path)
+        path = url.path
         if path == "/healthz":
             # readiness probe 用。API は叩かない
             self.reply(200, b"ok", "text/plain")
@@ -286,7 +287,9 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(404, "見つかりません".encode(), "text/plain; charset=utf-8")
             return
         try:
-            body, code = page(hosts()).encode(), 200
+            # ?at=keynote で、時刻に関係なくキーノートの表示を確かめられる
+            at = KEYNOTE_FROM if urllib.parse.parse_qs(url.query).get("at") == ["keynote"] else None
+            body, code = page(hosts(), now=at).encode(), 200
         except Exception:
             body, code = ERROR.encode(), 503
         self.reply(code, body, "text/html; charset=utf-8")
