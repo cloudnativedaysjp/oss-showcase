@@ -1,4 +1,4 @@
-# 話すときに使う、展示のセキュリティの解説ページ。index.html から kubectl create configmap --dry-run=client -o yaml で作る
+# 話すときに使う、展示の守り方の解説ページ。index.html と nginx.conf から kubectl create configmap --dry-run=client -o yaml で作る
 apiVersion: v1
 data:
   index.html: |
@@ -80,7 +80,7 @@ data:
     .lede { color: var(--muted); max-width: 58em; margin-top: 0.8em; }
 
     /* ---------- ヒーロー ---------- */
-    .hero { padding-block: clamp(40px, 8vw, 110px) clamp(32px, 5vw, 64px); }
+    .hero { padding-block: clamp(32px, 5vw, 72px) clamp(24px, 3vw, 40px); }
     .hero .kicker { color: var(--blue); font-weight: 700; display: flex; align-items: center; gap: 0.5em; }
     .hero h1 { font-size: var(--step-3); margin-top: 0.5em; max-width: 22em; }
     .hero h1 .yaml { font-family: var(--font-code); font-weight: 700; color: var(--magenta); }
@@ -306,6 +306,39 @@ data:
     .layer .num { font-family: var(--font-body); font-weight: 900; font-size: var(--step-1); color: var(--ink); }
     @media (max-width: 900px) { .layers { gap: 32px 24px; } }
 
+    /* ヒーローの主役：悪い PR の YAML。問題の行に、止める層の番号を付ける */
+    .hero-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(24px, 4vw, 56px); align-items: start; margin-top: 1.2em; }
+    .hero-body .lede { margin-top: 0; }
+    .hero-body .flow { margin-top: 1.6em; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .hero-body .flow i { padding-left: 1.2em; line-height: 1; }
+    .hero h1 .yaml { color: inherit; }
+    .pr { margin: 0; background: var(--code-bg); color: var(--code-ink); border-radius: 14px; overflow: hidden; min-width: 0; }
+    .pr-head { display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; font-family: var(--font-code); font-size: 0.8em; color: var(--code-dim); border-bottom: 1px solid rgba(255,255,255,.08); }
+    .pr-head b { color: var(--code-ink); font-weight: 700; }
+    .pr-lines { margin: 0; padding: 8px 0 10px; list-style: none; font-family: var(--font-code); font-size: clamp(0.72rem, 0.62rem + 0.3vw, 0.88rem); line-height: 1.6; overflow-x: auto; }
+    .pr-lines li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 0 14px 0 16px; border-left: 3px solid transparent; white-space: pre; }
+    .pr-lines li.bad { background: rgba(229, 132, 194, .12); border-left-color: var(--magenta); }
+    .pr-lines code { background: none; padding: 0; font-size: 1em; color: inherit; }
+    .pr-lines li { min-height: 1.95em; }
+    .pr-foot .legend-item { white-space: nowrap; margin-right: 0.8em; }
+    .stops { display: flex; gap: 4px; }
+    .stops span { font-family: var(--font-body); font-weight: 700; font-size: 0.86em; line-height: 1; padding: 5px 10px; border-radius: 999px; color: #fff; background: var(--magenta); white-space: nowrap; }
+    .pr-foot { padding: 10px 16px 14px; font-size: 0.85em; color: var(--code-dim); border-top: 1px solid rgba(255,255,255,.08); }
+    @media (max-width: 960px) { .hero-body { grid-template-columns: minmax(0, 1fr); } }
+
+    /* 2 枚目以降のタブでは、見出しだけを小さく残す */
+    .hero.compact { padding-block: 24px 8px; }
+    .hero.compact h1 { font-size: var(--step-2); margin-top: 0.3em; max-width: none; }
+    .hero.compact h1 br { display: none; }
+    .hero.compact .hero-body { display: none; }
+
+    /* 入れなかったもの */
+    .skipped { margin-top: 24px; display: grid; grid-template-columns: minmax(180px, 0.6fr) minmax(0, 2fr); gap: 8px 32px; padding: 20px 22px; border: 1px dashed var(--line); border-radius: 12px; }
+    .skipped .k { font-weight: 900; }
+    .skipped .k small { display: block; font-weight: 700; color: var(--muted); font-size: 0.82em; }
+    .skipped p { color: var(--muted); }
+    @media (max-width: 720px) { .skipped { grid-template-columns: minmax(0, 1fr); } }
+
     @media (prefers-reduced-motion: reduce) { .token, .lane { transition: none; } }
     </style>
     </head>
@@ -317,13 +350,22 @@ data:
     <header class="hero">
       <p class="kicker"><span class="hex"></span>CloudNative Days WAIWAI広場 ／ OSS Showcase の裏側</p>
       <h1>知らない人の <span class="yaml">YAML</span> が、<br>マージ 1 回で本番に入ってくる。</h1>
+      <div class="hero-body">
+        <div>
       <p class="lede">OSS Showcase は、PR を 1 本出すだけで、会場の Kubernetes にアプリを載せられる展示です。<br>誰でも PR を出せるクラスタを、どう考えて守ったかを紹介します。</p>
-      <div class="flow" aria-label="来場者のアプリが公開されるまで">
-        <span>fork して YAML を書く</span><i>→</i><span>PR</span><i>→</i><span>CI</span><i>→</i><span>マージ</span><i>→</i><span>Argo CD が同期</span><i>→</i><span class="end">https://&lt;名前&gt;.showcase.cloudnativedays.jp</span>
+        <div class="flow" aria-label="来場者のアプリが公開されるまで">
+        <span>fork して YAML を書く</span><i>↓</i><span>PR</span><i>↓</i><span>CI</span><i>↓</i><span>マージ</span><i>↓</i><span>Argo CD が同期</span><i>↓</i><span class="end">https://&lt;名前&gt;.showcase.cloudnativedays.jp</span>
+      </div>
+        </div>
+        <figure class="pr" aria-label="来場者から届いたかもしれない YAML">
+          <div class="pr-head"><b>apps/myapp/app.yaml</b><span>Pull Request</span></div>
+          <ol class="pr-lines"><li><code>apiVersion: apps/v1</code><span class="stops"None></span></li><li><code>kind: Deployment</code><span class="stops"None></span></li><li><code>metadata:</code><span class="stops"None></span></li><li><code>  name: myapp</code><span class="stops"None></span></li><li class="bad"><code>  namespace: kube-system</code><span class="stops"><span>CI</span><span>Argo CD</span><span>API サーバ</span></span></li><li><code>spec:</code><span class="stops"None></span></li><li><code>  template:</code><span class="stops"None></span></li><li><code>    spec:</code><span class="stops"None></span></li><li class="bad"><code>      priorityClassName: system-node-critical</code><span class="stops"><span>CI</span><span>API サーバ</span></span></li><li><code>      containers:</code><span class="stops"None></span></li><li><code>        - name: app</code><span class="stops"None></span></li><li class="bad"><code>          image: 10.0.0.1.nip.io/miner</code><span class="stops"><span>CI</span><span>API サーバ</span><span>実行時</span></span></li><li><code>          securityContext:</code><span class="stops"None></span></li><li class="bad"><code>            privileged: true</code><span class="stops"><span>API サーバ</span></span></li><li><code>      volumes:</code><span class="stops"None></span></li><li><code>        - name: root</code><span class="stops"None></span></li><li class="bad"><code>          hostPath: { path: / }</code><span class="stops"><span>CI</span><span>API サーバ</span></span></li></ol>
+          <figcaption class="pr-foot">印の付いた行は、右に書いた層で止まる。</figcaption>
+        </figure>
       </div>
     </header>
 
-    <nav class="tabs" role="tablist" aria-label="話の順番"><button class="tab" role="tab" id="tab-premise" aria-controls="p-premise" data-k="premise"><span class="n">1</span>前提</button><button class="tab" role="tab" id="tab-layers" aria-controls="p-layers" data-k="layers"><span class="n">2</span>4 つの層</button><button class="tab" role="tab" id="tab-attack" aria-controls="p-attack" data-k="attack"><span class="n">3</span>攻めてみる</button><button class="tab" role="tab" id="tab-holes" aria-controls="p-holes" data-k="holes"><span class="n">4</span>見つけた穴</button><button class="tab" role="tab" id="tab-agent" aria-controls="p-agent" data-k="agent"><span class="n">5</span>エージェント</button><button class="tab" role="tab" id="tab-youki" aria-controls="p-youki" data-k="youki"><span class="n">6</span>youki</button></nav>
+    <nav class="tabs" role="tablist" aria-label="話の順番"><button class="tab" role="tab" id="tab-premise" aria-controls="p-premise" data-k="premise"><span class="n">1</span>前提</button><button class="tab" role="tab" id="tab-layers" aria-controls="p-layers" data-k="layers"><span class="n">2</span>守りの層</button><button class="tab" role="tab" id="tab-attack" aria-controls="p-attack" data-k="attack"><span class="n">3</span>攻めてみる</button><button class="tab" role="tab" id="tab-holes" aria-controls="p-holes" data-k="holes"><span class="n">4</span>見つけた穴</button><button class="tab" role="tab" id="tab-agent" aria-controls="p-agent" data-k="agent"><span class="n">5</span>エージェント</button><button class="tab" role="tab" id="tab-youki" aria-controls="p-youki" data-k="youki"><span class="n">6</span>youki</button></nav>
 
     <div class="panel" role="tabpanel" id="p-premise" aria-labelledby="tab-premise" hidden>
     <section id="s-premise">
@@ -348,7 +390,7 @@ data:
         <div class="principle"><h3>Kubernetes の組み込みで書く</h3><p>VAP と MAP の CEL で書き、Gatekeeper や Kyverno を足さない。</p></div>
       </div>
     </section>
-    <div class="pager"><button type="button" class="next" data-go="layers">次へ：4 つの層</button></div>
+    <div class="pager"><button type="button" class="next" data-go="layers">次へ：守りの層</button></div>
     </div>
 
     <div class="panel" role="tabpanel" id="p-layers" aria-labelledby="tab-layers" hidden>
@@ -424,6 +466,10 @@ data:
           </tbody>
         </table>
       </div>
+      <div class="skipped">
+        <div class="k"><small>入れなかったもの</small>イメージスキャン</div>
+        <p>スキャンで分かるのは、知られている脆弱性があるかどうかだけです。<br>この展示はイメージの中身をはじめから信用していないので、脆弱性があってもなくても、縛り方は同じです。</p>
+      </div>
     </section>
     <div class="pager"><button type="button" data-go="premise">前へ：前提</button><button type="button" class="next" data-go="attack">次へ：攻めてみる</button></div>
     </div>
@@ -460,13 +506,13 @@ data:
         </div>
       </div>
     </section>
-    <div class="pager"><button type="button" data-go="layers">前へ：4 つの層</button><button type="button" class="next" data-go="holes">次へ：見つけた穴</button></div>
+    <div class="pager"><button type="button" data-go="layers">前へ：守りの層</button><button type="button" class="next" data-go="holes">次へ：見つけた穴</button></div>
     </div>
 
     <div class="panel" role="tabpanel" id="p-holes" aria-labelledby="tab-holes" hidden>
     <section id="s-holes">
       <div class="sec-head"><span class="hex"></span><h2>AI エージェントに攻めさせて見つけた穴</h2></div>
-      <p class="lede">公開前に、AI エージェント（Claude Code）に来場者の立場で穴を探させました。<br>本当に届いた穴があり、塞いでから公開しています。<br>最後の 1 つは、運営の設定ミスです。</p>
+      <p class="lede">公開前に、AI エージェント（Claude Code）に来場者の立場で穴を探させました。<br>本当に届いた穴があり、塞いでから公開しています。</p>
       <div class="route" style="margin-top:1.4em" aria-label="穴の探し方"><span class="hop">来場者と同じ権限で YAML を書く</span><i>→</i><span class="hop">本番のクラスタで試す</span><i>→</i><span class="hop bad">届いたら、運営のルールで塞ぐ</span><i>→</i><span class="hop goal">同じ攻撃が止まることを確かめる</span></div>
       <div class="breaches">
         <article class="breach">
@@ -497,15 +543,6 @@ data:
             <div class="how"><b>どう塞いだか</b><p>統計だけを読めるロールでつないだ。テーブルの中身、削除、ファイルの読み出しは拒否されることを確かめた。</p></div>
           </div>
         </article>
-        <article class="breach">
-          <span class="tag">運営の設定ミス</span>
-          <h3>守るための上限で、正しいアプリを止めた</h3>
-          <div class="route" aria-label="通り道"><span class="hop bad">ディスクの上限を追加<small>既定 1Gi、合計 2Gi</small></span><i>→</i><span class="hop">Pod が 3 つのアプリ</span><i>→</i><span class="hop goal">quota を超えて起動しない</span></div>
-          <div class="fix">
-            <div class="why"><b>なぜ通ったか</b><p>すでに動いている Pod には新しい上限がかからない。VM を作り直すまで気づかなかった。</p></div>
-            <div class="how"><b>どう塞いだか</b><p>既定を 200Mi、合計を 5Gi にした。制限を変えたら、作り直した環境で確かめる。</p></div>
-          </div>
-        </article>
       </div>
     </section>
     <div class="pager"><button type="button" data-go="attack">前へ：攻めてみる</button><button type="button" class="next" data-go="agent">次へ：エージェント</button></div>
@@ -513,19 +550,31 @@ data:
 
     <div class="panel" role="tabpanel" id="p-agent" aria-labelledby="tab-agent" hidden>
     <section id="s-agent">
-      <div class="sec-head"><span class="hex"></span><h2>エージェントが PR を書く前提のリポジトリ</h2></div>
-      <p class="lede">来場者の YAML は、AI エージェントが書くことも多いはずです。</p>
+      <div class="sec-head"><span class="hex"></span><h2>ルールが多い分、覚えるのはエージェントに任せる</h2></div>
+      <p class="lede">守りを固めた分、この展示には固有のルールがたくさんあります。<br>人が全部覚えて YAML を書くのは大変なので、ルールをエージェントが読める形で書きました。</p>
       <div class="agent-split">
-        <div class="pass"><b>リポジトリは、通すため</b>
+        <div class="stop"><b>人が書くと、覚えることが多い</b>
+          <ul class="plain">
+            <li>ホスト名は <code>&lt;名前&gt;.showcase.cloudnativedays.jp</code> だけ</li>
+            <li>イメージは、決まったレジストリからだけ</li>
+            <li>volume は、決まった 8 種類だけ</li>
+            <li>外への通信は、DNS、80 番、443 番だけ</li>
+            <li>Ingress、NodePort、priorityClassName は使えない</li>
+            <li>CPU、メモリ、Pod の数に上限がある</li>
+          </ul>
+        </div>
+        <div class="pass"><b>エージェントには、任せられるようにした</b>
           <ul class="plain">
             <li>手順は <code>AGENTS.md</code> に 1 つだけ</li>
-            <li>CI のエラーは、直し方まで書く</li>
+            <li>CI のエラーは、直し方まで書く。エージェントはログを読んで自分で直す</li>
             <li><code>apps/example/</code> をコピーして 3 か所変えれば動く</li>
           </ul>
         </div>
-        <div class="stop"><b>クラスタは、止めるため</b><p>誰が書いた YAML でも、API サーバと実行時の仕組みで同じように縛る。</p></div>
       </div>
-      <div class="agent-proof"><p>README と AGENTS.md だけを渡したエージェントが、Mailpit を選んで CI を通る PR を出した。</p></div>
+      <div class="agent-proof">
+        <p>README と AGENTS.md だけを渡したエージェントが、Mailpit を選んで CI を通る PR を出した。</p>
+        <p>エージェントが書いた PR も、クラスタでは人の PR と同じように縛る。</p>
+      </div>
     </section>
     <div class="pager"><button type="button" data-go="holes">前へ：見つけた穴</button><button type="button" class="next" data-go="youki">次へ：youki</button></div>
     </div>
@@ -599,11 +648,11 @@ data:
     <span class="c"># Gateway の Envoy が、ノードや内部ネットワークの任意の IP とポートへ転送する。</span>
     <span class="c"># Kubernetes のコントローラだけに書かせる</span>`,
         src: "oss-showcase-platform/policies/runtime.yaml" },
-      { group: "ノードを狙う", title: "運営と同じ優先度を名乗る",
+      { group: "ノードを狙う", title: "運営と同じ優先度で動かす",
         what: "priorityClassName: system-node-critical を書き、ノードが混んだときにほかの Pod を追い出す。",
         layers: { ci: "stop", argo: null, api: "stop", run: null },
         how: ["CI が priorityClassName を拒否する", "VAP showcase-priority が、来場者の namespace の Pod の priorityClassName を拒否する"],
-        why: "Cilium、Tetragon、Argo CD には system-*-critical を付けている。来場者が同じ優先度を名乗ると、運営のコンポーネントが追い出される。",
+        why: "Cilium、Tetragon、Argo CD には system-*-critical を付けている。来場者の Pod が同じ優先度で動くと、ノードが混んだときに運営のコンポーネントが追い出される。",
         code: `<span class="c"># policies/priority.yaml（抜粋）</span>
     validations:
       - expression: >-
@@ -827,20 +876,27 @@ data:
         if (on && focus) t.focus();
       });
       document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.id !== `p-${k}`; });
-      // ヒーローは最初のタブだけに出す。ほかのタブは、開いたらすぐ中身が見える
-      document.querySelector(".hero").hidden = k !== TAB_KEYS[0];
+      // 2 枚目以降のタブでは、見出しだけを小さく残す。開いたらすぐ中身が見える
+      document.querySelector(".hero").classList.toggle("compact", k !== TAB_KEYS[0]);
       if (k === "attack") {
         const cur = document.querySelector('.attack-btn[aria-pressed="true"]');
         show(cur ? Number(cur.id.split("-")[1]) : 0);
       }
     }
+    // 先に中身を切り替えてからスクロールし、最後に # を書き換える。順番が逆だと、古いタブが一瞬見える
     function go(k) {
-      if (location.hash.slice(1) !== k) location.hash = k; else openTab(k);
-      window.scrollTo({ top: 0 });
+      openTab(k);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      if (location.hash.slice(1) !== k) location.hash = k;
     }
     document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => go(t.dataset.k)));
     document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
-    window.addEventListener("hashchange", () => openTab(location.hash.slice(1)));
+    // 戻るボタンなどで # が変わったときだけ切り替える。go() から来た分は、もう切り替わっている
+    window.addEventListener("hashchange", () => {
+      const k = location.hash.slice(1);
+      const cur = document.querySelector('.tab[aria-selected="true"]');
+      if (!cur || cur.dataset.k !== k) openTab(k);
+    });
     document.addEventListener("keydown", (e) => {
       if (e.altKey || e.ctrlKey || e.metaKey || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
       const i = TAB_KEYS.indexOf(document.querySelector('.tab[aria-selected="true"]').dataset.k);
@@ -852,6 +908,29 @@ data:
 
     </body>
     </html>
+  nginx.conf: |
+    # youki では、コンテナの標準出力と標準エラー出力をユーザーが開き直せない。/dev/stderr を開かずに書く
+    worker_processes 1;
+    error_log stderr warn;
+    pid /tmp/nginx.pid;
+    events {
+      worker_connections 1024;
+    }
+    http {
+      include /etc/nginx/mime.types;
+      access_log off;
+      client_body_temp_path /tmp/client_temp;
+      proxy_temp_path /tmp/proxy_temp;
+      fastcgi_temp_path /tmp/fastcgi_temp;
+      uwsgi_temp_path /tmp/uwsgi_temp;
+      scgi_temp_path /tmp/scgi_temp;
+      server {
+        listen 8080;
+        root /usr/share/nginx/html;
+        index index.html;
+        charset utf-8;
+      }
+    }
 kind: ConfigMap
 metadata:
   name: showcase-platform

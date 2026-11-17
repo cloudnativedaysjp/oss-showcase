@@ -12,6 +12,9 @@ spec:
     metadata:
       labels:
         app: showcase-platform
+      annotations:
+        # configmap.yaml の SHA-256。subPath でマウントしたファイルは自動で更新されないので、変えたら Pod を作り直す
+        showcase.cloudnativedays.jp/configmap-sha256: 6fe34ea11068f6437fae831df759615579b0c696c7b50dc3ffadd216675a7a8c
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -38,7 +41,12 @@ spec:
               memory: 64Mi
           volumeMounts:
             - name: html
-              mountPath: /usr/share/nginx/html
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+              readOnly: true
+            - name: html
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
               readOnly: true
             # nginx は一時ファイルと pid を /tmp に書く
             - name: tmp
