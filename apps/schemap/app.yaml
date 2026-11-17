@@ -1,0 +1,65 @@
+# schemap: Atlas HCL（DB スキーマ）を ER 図で見て、図の上やエディタで編集するツール
+# https://github.com/varu3/schemap
+# イメージはサンプルの EC サイトのスキーマを開き、8080 番で待ち受ける。
+# 来場者が編集して保存した内容は Pod の中だけに残り、Pod を作り直すと元に戻る。
+# 保存した内容を全員で 1 つにするため、replicas は 1 にする
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schemap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: schemap
+  template:
+    metadata:
+      labels:
+        app: schemap
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+      containers:
+        - name: schemap
+          image: ghcr.io/varu3/schemap:v20261117-3
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schemap
+spec:
+  selector:
+    app: schemap
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: schemap
+spec:
+  parentRefs:
+    - name: showcase
+      namespace: gateway
+  hostnames:
+    - schemap.showcase.cloudnativedays.jp
+  rules:
+    - backendRefs:
+        - name: schemap
+          port: 80
