@@ -2,16 +2,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: security
+  name: showcase-platform
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: security
+      app: showcase-platform
   template:
     metadata:
       labels:
-        app: security
+        app: showcase-platform
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -46,7 +46,7 @@ spec:
       volumes:
         - name: html
           configMap:
-            name: security
+            name: showcase-platform
         - name: tmp
           emptyDir:
             sizeLimit: 16Mi
@@ -54,10 +54,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: security
+  name: showcase-platform
 spec:
   selector:
-    app: security
+    app: showcase-platform
   ports:
     - port: 80
       targetPort: 8080

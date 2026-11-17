@@ -57,6 +57,7 @@ data:
     body {
       background: var(--bg); color: var(--ink);
       font-family: var(--font-body); font-weight: 500; font-size: var(--step-0); line-height: 1.75;
+      word-break: auto-phrase; line-break: strict; text-wrap: pretty;
       padding-left: max(16px, env(safe-area-inset-left, 0px));
       padding-right: max(16px, env(safe-area-inset-right, 0px));
     }
@@ -76,7 +77,7 @@ data:
     .sec-head .hex { width: 0.7em; }
 
     section { padding-block: clamp(48px, 7vw, 96px); border-top: 1px solid var(--line); }
-    .lede { color: var(--muted); max-width: 62ch; margin-top: 0.8em; }
+    .lede { color: var(--muted); max-width: 58em; margin-top: 0.8em; }
 
     /* ---------- ヒーロー ---------- */
     .hero { padding-block: clamp(40px, 8vw, 110px) clamp(32px, 5vw, 64px); }
@@ -169,6 +170,7 @@ data:
       font-family: var(--font-code); font-size: 0.82em; line-height: 1.6; overflow-x: auto; white-space: pre;
     }
     pre .c { color: var(--code-dim); }
+    pre code { background: none; padding: 0; font-size: 1em; color: inherit; }
     .src { font-size: 0.82em; color: var(--muted); font-family: var(--font-code); }
     .stage > * { min-width: 0; }
     @media (max-width: 900px) { .sim { grid-template-columns: minmax(0, 1fr); } .stage { position: static; } }
@@ -209,6 +211,101 @@ data:
     footer .links { display: flex; flex-wrap: wrap; gap: 10px 24px; font-weight: 700; }
     footer p { color: var(--muted); font-size: 0.9em; }
 
+    /* 見つけた穴：一言、通り道、なぜと対策 */
+    .breaches { margin-top: 2em; display: grid; gap: 18px; }
+    .breach { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: clamp(18px, 2.4vw, 28px); display: grid; gap: 16px; min-width: 0; }
+    .breach .tag { font-size: 0.85em; font-weight: 700; color: var(--blue); }
+    .breach h3 { font-size: var(--step-1); font-weight: 900; }
+    .route { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .route .hop { background: var(--sunk); border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.92em; }
+    .route .hop small { display: block; font-weight: 500; color: var(--muted); font-size: 0.85em; }
+    .route .hop.bad { background: var(--magenta-soft); color: var(--magenta); outline: 2px solid var(--magenta); }
+    .route .hop.bad small { color: var(--magenta); }
+    .route .hop.goal { background: var(--ink); color: var(--bg); }
+    .route .hop.goal small { color: var(--bg); opacity: .75; }
+    .route i { font-style: normal; font-weight: 900; color: var(--muted); }
+    .fix { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+    .fix div { display: grid; gap: 2px; min-width: 0; align-content: start; }
+    .fix b { font-size: 0.85em; }
+    .fix .why b { color: var(--magenta); }
+    .fix .how b { color: var(--blue); }
+    .fix p { color: var(--muted); }
+    .breach .note { font-size: 0.9em; color: var(--muted); background: var(--sunk); border-radius: 8px; padding: 8px 12px; }
+    .breach .note b { color: var(--ink); }
+    @media (max-width: 720px) { .fix { grid-template-columns: 1fr; } }
+
+    /* YAML で見える世界と、見えない世界 */
+    .worlds { margin-top: 2em; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .world { border-radius: 14px; padding: clamp(18px, 2.4vw, 28px); display: grid; gap: 12px; align-content: start; min-width: 0; }
+    .world.k8s { background: var(--surface); border: 1px solid var(--line); }
+    .world.app { background: var(--code-bg); color: var(--code-ink); }
+    .world .tag { font-size: 0.85em; font-weight: 700; }
+    .world.k8s .tag { color: var(--blue); }
+    .world.app .tag { color: var(--orange); }
+    .world h3 { font-weight: 900; }
+    .world ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+    .world.k8s li { color: var(--muted); }
+    .world.app li { color: var(--code-ink); opacity: .9; }
+    .world .verdict { font-weight: 700; }
+    .world.k8s .verdict { color: var(--blue); }
+    .world.app .verdict { color: var(--orange); }
+    .world pre { background: var(--sunk); color: var(--ink); }
+    .world.app pre { background: rgba(255,255,255,.06); color: var(--code-ink); }
+    .world.app code { background: rgba(255,255,255,.14); color: var(--code-ink); }
+    .world pre code { background: none; padding: 0; font-size: 1em; color: inherit; }
+    @media (max-width: 760px) { .worlds { grid-template-columns: 1fr; } }
+    .runtime { margin-top: 18px; overflow-x: auto; }
+    .runtime table { min-width: 560px; }
+    .runtime td:first-child { font-weight: 700; white-space: nowrap; }
+    .runtime td.mech { font-weight: 700; color: var(--magenta); white-space: nowrap; }
+
+    /* エージェントが PR を書く前提のリポジトリ */
+    .agent-split { margin-top: 2em; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .agent-split > div { border-radius: 14px; padding: 20px 22px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+    .agent-split .pass { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--blue); }
+    .agent-split .stop { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--magenta); }
+    .agent-split b { font-size: var(--step-1); }
+    .agent-split p { color: var(--muted); }
+    @media (max-width: 720px) { .agent-split { grid-template-columns: 1fr; } }
+    .agent-items { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 720px) { .agent-items { grid-template-columns: minmax(0, 1fr); } }
+    .agent-item pre { white-space: pre-wrap; }
+    .agent-item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+    .agent-item h3 { font-size: 1.05em; }
+    .agent-item p { color: var(--muted); }
+    .agent-proof { margin-top: 18px; background: var(--sunk); border-radius: 12px; padding: 16px 20px; display: grid; gap: 4px; }
+    .agent-proof b { color: var(--ink); }
+    .agent-proof p { color: var(--muted); }
+
+    /* タブ。話す順に切り替える */
+    .tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; gap: 4px; overflow-x: auto; padding-block: 8px; }
+    body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+    .tab { font: inherit; font-weight: 700; color: var(--muted); background: none; border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+    .tab .n { font-family: var(--font-code); font-size: 0.85em; color: var(--magenta); }
+    .tab:hover { color: var(--ink); background: var(--sunk); }
+    .tab[aria-selected="true"] { color: var(--surface); background: var(--ink); }
+    .tab[aria-selected="true"] .n { color: var(--surface); opacity: .8; }
+    .panel > section:first-child { border-top: 0; padding-top: clamp(24px, 3vw, 40px); }
+    .pager { display: flex; justify-content: space-between; gap: 12px; padding-block: 8px 48px; }
+    .pager button { font: inherit; font-weight: 700; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 10px 20px; cursor: pointer; }
+    .pager button:hover { border-color: var(--magenta); color: var(--magenta); }
+    .pager .next { margin-left: auto; }
+    .principle { padding-block: 14px !important; }
+    .agent-split ul.plain { margin: 4px 0 0; padding-left: 1.2em; display: grid; gap: 4px; color: var(--muted); }
+
+    /* デザインの見直し：カードを減らし、六角形を印に使う */
+    #s-premise .goals { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 40px; }
+    #s-premise .goal { background: none; border: 0; border-radius: 0; padding: 0 0 0 1.6em; position: relative; }
+    #s-premise .goal::before { content: ""; position: absolute; left: 0; top: 0.45em; width: 0.9em; aspect-ratio: 1 / 1.1547; background: var(--magenta);
+      clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+    @media (max-width: 640px) { #s-premise .goals { grid-template-columns: minmax(0, 1fr); } }
+    .layers { gap: 0 24px; }
+    .layer { background: none; border: 0; border-radius: 0; border-top: 3px solid var(--line); padding: 26px 0 0; position: relative; }
+    .layer::before { content: ""; position: absolute; top: -12px; left: 0; width: 20px; aspect-ratio: 1 / 1.1547; background: var(--magenta);
+      clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+    .layer .num { font-family: var(--font-body); font-weight: 900; font-size: var(--step-1); color: var(--ink); }
+    @media (max-width: 900px) { .layers { gap: 32px 24px; } }
+
     @media (prefers-reduced-motion: reduce) { .token, .lane { transition: none; } }
     </style>
     </head>
@@ -218,110 +315,46 @@ data:
     <div class="wrap">
 
     <header class="hero">
-      <p class="kicker"><span class="hex"></span>CloudNative Days ワイワイ広場 ／ OSS Showcase の裏側</p>
-      <h1>知らない人の <span class="yaml">YAML</span> が、マージ 1 回で本番に入ってくる。</h1>
-      <p class="lede">OSS Showcase は、PR を 1 本出すだけで、会場の Kubernetes にアプリを載せられる展示です。誰でも PR を出せるクラスタを、どう考えて守ったかを紹介します。</p>
+      <p class="kicker"><span class="hex"></span>CloudNative Days WAIWAI広場 ／ OSS Showcase の裏側</p>
+      <h1>知らない人の <span class="yaml">YAML</span> が、<br>マージ 1 回で本番に入ってくる。</h1>
+      <p class="lede">OSS Showcase は、PR を 1 本出すだけで、会場の Kubernetes にアプリを載せられる展示です。<br>誰でも PR を出せるクラスタを、どう考えて守ったかを紹介します。</p>
       <div class="flow" aria-label="来場者のアプリが公開されるまで">
         <span>fork して YAML を書く</span><i>→</i><span>PR</span><i>→</i><span>CI</span><i>→</i><span>マージ</span><i>→</i><span>Argo CD が同期</span><i>→</i><span class="end">https://&lt;名前&gt;.showcase.cloudnativedays.jp</span>
       </div>
     </header>
 
-    <section id="premise">
+    <nav class="tabs" role="tablist" aria-label="話の順番"><button class="tab" role="tab" id="tab-premise" aria-controls="p-premise" data-k="premise"><span class="n">1</span>前提</button><button class="tab" role="tab" id="tab-layers" aria-controls="p-layers" data-k="layers"><span class="n">2</span>4 つの層</button><button class="tab" role="tab" id="tab-attack" aria-controls="p-attack" data-k="attack"><span class="n">3</span>攻めてみる</button><button class="tab" role="tab" id="tab-holes" aria-controls="p-holes" data-k="holes"><span class="n">4</span>見つけた穴</button><button class="tab" role="tab" id="tab-agent" aria-controls="p-agent" data-k="agent"><span class="n">5</span>エージェント</button><button class="tab" role="tab" id="tab-youki" aria-controls="p-youki" data-k="youki"><span class="n">6</span>youki</button></nav>
+
+    <div class="panel" role="tabpanel" id="p-premise" aria-labelledby="tab-premise" hidden>
+    <section id="s-premise">
       <div class="sec-head"><span class="hex"></span><h2>何を守るのか</h2></div>
-      <p class="lede">来場者を疑いたいわけではありません。うっかり書いた 1 行でも、わざと書いた 1 行でも、次の 4 つが起きないようにしました。</p>
+      <p class="lede">来場者を疑っているわけではありません。<br>それでも、知らない人が書いた YAML と、知らない人が作ったイメージは、信頼できないものとして扱うしかありません。<br>うっかりでも、わざとでも、次の 4 つが起きないようにしました。</p>
       <div class="goals">
-        <div class="goal"><b>ほかの人の展示を止めない</b><p>CPU、メモリ、ディスクを 1 つのアプリが使い切らない。隣の namespace に手を出せない。</p></div>
+        <div class="goal"><b>ほかの人の展示を止めない</b><p>CPU、メモリ、ディスクを 1 つのアプリが使い切らない。隣の namespace に手を出せない。</p></div>
         <div class="goal"><b>ノードとクラスタを渡さない</b><p>コンテナからノードに抜けられない。運営が入れた制限を、中から外せない。</p></div>
         <div class="goal"><b>踏み台にさせない</b><p>スキャン、スパム、クラウドのメタデータや内部ネットワークへの到達を止める。</p></div>
         <div class="goal"><b>運営の秘密を漏らさない</b><p>証明書、管理者のパスワード、VM の認証情報に、来場者の Pod から届かない。</p></div>
       </div>
-      <div class="allowed">
-        <div>
-          <h3>来場者に許していること</h3>
-          <ul>
-            <li>Deployment、StatefulSet、Job、Service、HTTPRoute</li>
-            <li>Role と RoleBinding。自分の namespace の中だけ</li>
-            <li>PVC と、CloudNativePG の PostgreSQL</li>
-            <li>コンテナを root で動かすこと</li>
-            <li>認証なしで pull できる公開イメージ</li>
-          </ul>
-        </div>
-        <div>
-          <h3>許していないこと</h3>
-          <ul>
-            <li>特権コンテナ、hostPath、hostNetwork、hostPort</li>
-            <li>Ingress、LoadBalancer、NodePort、NetworkPolicy</li>
-            <li>priorityClassName、ExternalName、EndpointSlice</li>
-            <li>ほかの namespace とほかのホスト名</li>
-            <li>DNS、80 番、443 番以外への外向きの通信</li>
-          </ul>
-        </div>
-      </div>
     </section>
 
-    <section id="principles">
+    <section id="s-principles">
       <div class="sec-head"><span class="hex"></span><h2>何を意識したか</h2></div>
-      <p class="lede">個々のルールより先に、この 6 つを決めました。ルールを足すかどうかで迷ったときは、ここに戻って決めています。</p>
       <div class="principles">
-        <div class="principle">
-          <h3>CI は親切、クラスタは強制</h3>
-          <div><p><code>check.py</code> は、来場者に直し方を早く伝えるためのものです。守りは、API サーバと動いている最中の層に置きました。主なルールは、CI と VAP の両方に書いています。</p></div>
-        </div>
-        <div class="principle">
-          <h3>禁止ではなく、許すものを並べる</h3>
-          <div><p>リソースの種類、volume の種類、イメージのレジストリは、使ってよいものだけを列挙しました。禁止リストは、新しい書き方が出てくるたびに穴になります。</p>
-          <p class="ex">例：IP を直書きしたレジストリを禁止しても、<code>10.0.0.1.nip.io</code> で迂回できた。</p></div>
-        </div>
-        <div class="principle">
-          <h3>書いた時点だけでなく、動き出した後まで</h3>
-          <div><p>YAML のルールを満たしていても、Pod の中から API を叩けば制限を外せることがあります。ServiceAccount のトークンは既定でマウントせず、来場者の ServiceAccount からは NetworkPolicy と quota を変えられないようにしました。</p></div>
-        </div>
-        <div class="principle">
-          <h3>運営のものは、来場者の PR が届かない場所に</h3>
-          <div><p>quota、NetworkPolicy、Tetragon のポリシーは、運営のリポジトリから全 namespace に入れます。反映のしかたが違うものを同じリポジトリに置くと、「マージしたのに効いていない」が起きるので、リポジトリも分けました。</p></div>
-        </div>
-        <div class="principle">
-          <h3>止めるか、記録するか</h3>
-          <div><p>user namespace の作成のように、正しいアプリがほぼ使わないものは止めます。<code>/tmp</code> に置いたファイルの実行のように、止めると正しいアプリまで壊れるものは、記録だけして後から探します。</p></div>
-        </div>
-        <div class="principle">
-          <h3>Kubernetes の組み込みで書く</h3>
-          <div><p>ルールは ValidatingAdmissionPolicy と MutatingAdmissionPolicy の CEL で書きました。Gatekeeper や Kyverno を入れずに済み、守る仕組みそのものが止まる心配が減ります。</p></div>
-        </div>
+        <div class="principle"><h3>CI は親切、クラスタは強制</h3><p>CI は直し方を早く伝えるため。守るのは API サーバと実行時の仕組み。</p></div>
+        <div class="principle"><h3>禁止ではなく、許すものを並べる</h3><p>リソース、volume、レジストリは使ってよいものだけ。IP 直書きを禁止しても、<code>nip.io</code> で迂回された。</p></div>
+        <div class="principle"><h3>書いた時点だけでなく、動き出した後まで</h3><p>Pod の中から API を叩いて、制限を外せないようにする。</p></div>
+        <div class="principle"><h3>運営のものは、来場者の PR が届かない場所に</h3><p>quota や NetworkPolicy は、運営のリポジトリから全アプリに入れる。</p></div>
+        <div class="principle"><h3>止めるか、記録するか</h3><p>正しいアプリが使わないものは止める。止めると壊れるものは、記録して見張る。</p></div>
+        <div class="principle"><h3>Kubernetes の組み込みで書く</h3><p>VAP と MAP の CEL で書き、Gatekeeper や Kyverno を足さない。</p></div>
       </div>
     </section>
+    <div class="pager"><button type="button" class="next" data-go="layers">次へ：4 つの層</button></div>
+    </div>
 
-    <section id="arch">
-      <div class="sec-head"><span class="hex"></span><h2>構成</h2></div>
-      <p class="lede">VM 1 台の k3s です。リポジトリは来場者用と運営用の 2 つに分けました。運営のものは、来場者の PR では変えられません。</p>
-      <div class="arch">
-        <div class="col">
-          <div class="box visitor">
-            <span class="tag">公開リポジトリ</span>
-            <h3>oss-showcase</h3>
-            <p>来場者が PR を出す。<code>apps/&lt;名前&gt;/</code> の 1 ディレクトリが 1 アプリになる。</p>
-            <ul><li>CI の <code>check.py</code> がルールを確かめる</li><li>マージすると Argo CD が同期する</li></ul>
-          </div>
-          <div class="box staff">
-            <span class="tag">運営のリポジトリ</span>
-            <h3>oss-showcase-platform</h3>
-            <p>Argo CD の設定、Gateway、ポリシー、namespace ごとの制限。</p>
-            <ul><li><code>namespace-defaults/</code> は全アプリに Argo CD が入れる</li><li><code>policies/</code> は VM で apply する</li></ul>
-          </div>
-        </div>
-        <div class="arrow" aria-hidden="true">→</div>
-        <div class="cluster" aria-label="クラスタの中身">
-          <div class="row"><span class="chip">k3s <small>VM 1 台</small></span><span class="chip">Argo CD <small>ディレクトリごとに Application</small></span></div>
-          <div class="row"><span class="chip">Cilium <small>CNI、Gateway API、NetworkPolicy</small></span><span class="chip">Tetragon <small>カーネルで見張る</small></span></div>
-          <div class="row"><span class="chip">youki <small>来場者の Pod のランタイム</small></span><span class="chip">VAP と MAP <small>API サーバのルール</small></span></div>
-          <div class="row"><span class="chip">app-&lt;名前&gt; <small>アプリごとの namespace</small></span><span class="chip">CloudNativePG <small>来場者の DB</small></span></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="layers">
-      <div class="sec-head"><span class="hex"></span><h2>守りは 4 つの層</h2></div>
-      <p class="lede">YAML がクラスタに入って動くまでに、止める場所が 4 回あります。どこか 1 つが抜けても、後ろの層で止まるようにしました。</p>
+    <div class="panel" role="tabpanel" id="p-layers" aria-labelledby="tab-layers" hidden>
+    <section id="s-layers">
+      <div class="sec-head"><span class="hex"></span><h2>守りは 4 つの層</h2></div>
+      <p class="lede">YAML がクラスタに入って動くまでに、止める場所が 4 回あります。<br>どこか 1 つが抜けても、後ろの層で止まるようにしました。</p>
       <div class="layers">
         <div class="layer">
           <span class="num">① CI</span>
@@ -346,15 +379,64 @@ data:
       </div>
     </section>
 
-    <section id="sim">
+    <section id="s-worlds">
+      <div class="sec-head"><span class="hex"></span><h2>YAML で見えるのは、Kubernetes の世界まで</h2></div>
+      <p class="lede">YAML で止められるのは、どんなリソースを作るかまでです。<br>コンテナの中でアプリが何をするかは、YAML には書かれていません。<br>そこで、通信、プロセス、資源の使い方を、実行時に縛る仕組みを入れています。</p>
+      <div class="worlds">
+        <div class="world k8s">
+          <span class="tag">Kubernetes の世界</span>
+          <h3>YAML に書いてあること</h3>
+          <pre><code>image: nginx
+    volumes: [emptyDir]
+    hostnames: [myapp.showcase…]
+    resources: { limits: { cpu: 500m } }</code></pre>
+          <ul>
+            <li>どの種類のリソースを、どの namespace に作るか</li>
+            <li>どのイメージを、どの権限と volume で動かすか</li>
+            <li>どのホスト名で公開するか</li>
+          </ul>
+          <p class="verdict">→ CI、Argo CD、API サーバで止められる</p>
+        </div>
+        <div class="world app">
+          <span class="tag">アプリの世界</span>
+          <h3>コンテナの中で起きること</h3>
+          <ul>
+            <li><code>image: nginx</code> と書いてあっても、中身が nginx とは限らない</li>
+            <li>起動してから、どこへ通信するか</li>
+            <li>何をダウンロードして、何を実行するか</li>
+            <li>CPU、メモリ、ディスク、プロセスをどれだけ使うか</li>
+            <li>カーネルに何を頼むか</li>
+          </ul>
+          <p class="verdict">→ YAML からは見えないので、実行時に縛る</p>
+        </div>
+      </div>
+      <div class="runtime">
+        <table>
+          <thead><tr><th>アプリがすること</th><th>縛る仕組み</th><th>何をしているか</th></tr></thead>
+          <tbody>
+            <tr><td>通信する</td><td class="mech">CiliumNetworkPolicy</td><td>外へは DNS、80 番、443 番だけ。隣のアプリ、メタデータサーバ、内部ネットワークには届かない</td></tr>
+            <tr><td>プロセスを実行する</td><td class="mech">Tetragon</td><td>すべてのプロセスの実行を、カーネルで記録する</td></tr>
+            <tr><td>カーネルに頼む</td><td class="mech">Tetragon、seccomp</td><td>user namespace を作ろうとしたら、その場で止める。seccomp で危ないシステムコールを絞る</td></tr>
+            <tr><td>CPU とメモリを使う</td><td class="mech">cgroup、ResourceQuota</td><td>コンテナごとの limits と、アプリごとの合計で縛る</td></tr>
+            <tr><td>ディスクを使う</td><td class="mech">ephemeral-storage</td><td>emptyDir とログは 1 アプリ 5Gi まで</td></tr>
+            <tr><td>プロセスを増やす</td><td class="mech">PID の上限</td><td>Pod ごとに 1024 まで</td></tr>
+            <tr><td>接続を受ける</td><td class="mech">nftables</td><td>送信元の IP ごとに、新しい接続を 1 秒 300 本まで</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <div class="pager"><button type="button" data-go="premise">前へ：前提</button><button type="button" class="next" data-go="attack">次へ：攻めてみる</button></div>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-attack" aria-labelledby="tab-attack" hidden>
+    <section id="s-sim">
       <div class="sec-head"><span class="hex"></span><h2>攻撃を選んでみてください</h2></div>
-      <p class="lede">展示を開く前に、自分たちで試した攻め方です。選ぶと、どの層で止まるかと、止めているルールの実物が出ます。</p>
+      <p class="lede">展示を開く前に、実際に試した攻め方です。<br>選ぶと、どの層で止まるかと、止めているルールの実物が出ます。</p>
       <div class="sim">
         <div class="picker" id="picker"></div>
         <div class="stage" aria-live="polite">
           <div class="what">
-            <span class="label" id="a-group"></span>
-            <h3 id="a-title"></h3>
+                    <h3 id="a-title"></h3>
             <p id="a-what"></p>
           </div>
           <div>
@@ -365,7 +447,7 @@ data:
               <div class="lane" data-k="api"><span class="lname">③ API サーバ</span><span class="state"></span></div>
               <div class="lane" data-k="run"><span class="lname">④ 動いている最中</span><span class="state"></span></div>
             </div>
-            <div class="legend" style="margin-top:10px"><span class="s">止める</span><span class="l">記録する</span><span>この層では見ない</span></div>
+            <div class="legend" style="margin-top:10px"><span class="s">止める</span><span>この層では見ない</span></div>
           </div>
           <div class="how">
             <ul id="a-how"></ul>
@@ -378,113 +460,83 @@ data:
         </div>
       </div>
     </section>
+    <div class="pager"><button type="button" data-go="layers">前へ：4 つの層</button><button type="button" class="next" data-go="holes">次へ：見つけた穴</button></div>
+    </div>
 
-
-
-    <section id="holes">
-      <div class="sec-head"><span class="hex"></span><h2>実際に見つけた穴</h2></div>
-      <p class="lede">公開前に攻める側に回ってみたら、本当に穴がありました。設計のときに気づいたものと、自分で作ったものも並べます。</p>
-      <div class="holes">
-        <article class="hole">
-          <span class="who">Gateway を踏み台に、ノードの kubelet へ</span>
-          <dl>
-            <dt>攻め方</dt><dd>selector のない Service に、手で書いた EndpointSlice を付ける。宛先はノードの IP と 10250 番。HTTPRoute でその Service に向ける。</dd>
-            <dt>結果</dt><dd>インターネットから届いた。Gateway の Envoy はノードのネットワークで動くので、NetworkPolicy がかからない。</dd>
-            <dt>対策</dt><dd>来場者の namespace の EndpointSlice は、Kubernetes のコントローラだけが書けるようにした。ExternalName も先に塞いだ。</dd>
-          </dl>
+    <div class="panel" role="tabpanel" id="p-holes" aria-labelledby="tab-holes" hidden>
+    <section id="s-holes">
+      <div class="sec-head"><span class="hex"></span><h2>AI エージェントに攻めさせて見つけた穴</h2></div>
+      <p class="lede">公開前に、AI エージェント（Claude Code）に来場者の立場で穴を探させました。<br>本当に届いた穴があり、塞いでから公開しています。<br>最後の 1 つは、運営の設定ミスです。</p>
+      <div class="route" style="margin-top:1.4em" aria-label="穴の探し方"><span class="hop">来場者と同じ権限で YAML を書く</span><i>→</i><span class="hop">本番のクラスタで試す</span><i>→</i><span class="hop bad">届いたら、運営のルールで塞ぐ</span><i>→</i><span class="hop goal">同じ攻撃が止まることを確かめる</span></div>
+      <div class="breaches">
+        <article class="breach">
+          <span class="tag">エージェントが、実際に届かせた</span>
+          <h3>Gateway が、ノードの kubelet まで中継してしまった</h3>
+          <div class="route" aria-label="通り道"><span class="hop">インターネット</span><i>→</i><span class="hop">Gateway<small>ノードのネットワークで動く</small></span><i>→</i><span class="hop bad">手で書いた EndpointSlice<small>行き先：ノードの 10250 番</small></span><i>→</i><span class="hop goal">kubelet<small>ノードの管理用 API</small></span></div>
+          <p class="note"><b>EndpointSlice</b>：Service の転送先の一覧。普段は、selector に合う Pod を Kubernetes が自動で書き込む。selector のない Service なら、人が好きな IP とポートを書ける。</p>
+          <div class="fix">
+            <div class="why"><b>なぜ通ったか</b><p>Service の行き先を手で書けた。Gateway はノードで動くので、NetworkPolicy がかからない。</p></div>
+            <div class="how"><b>どう塞いだか</b><p>EndpointSlice は Kubernetes のコントローラだけが書けるようにした。ExternalName も先に塞いだ。</p></div>
+          </div>
         </article>
-        <article class="hole">
-          <span class="who">Role で自分に権限を渡し、制限を外す</span>
-          <dl>
-            <dt>攻め方</dt><dd>Role で <code>cilium.io</code> の権限を自分の ServiceAccount に渡す。Pod の中から、allow-all の CiliumNetworkPolicy を足す。</dd>
-            <dt>結果</dt><dd>外向きの通信の制限が外れる。YAML のルールは満たしたままなので、CI では止まらない。</dd>
-            <dt>対策</dt><dd>来場者の ServiceAccount からは、NetworkPolicy、ResourceQuota、LimitRange を変えられない VAP を足した。</dd>
-          </dl>
+        <article class="breach">
+          <span class="tag">エージェントが、実際に外した</span>
+          <h3>YAML は正しいのに、動き出した後に自分で制限を外せた</h3>
+          <div class="route" aria-label="通り道"><span class="hop bad">Role<small>自分に cilium.io を許す</small></span><i>→</i><span class="hop">自分の Pod</span><i>→</i><span class="hop">API サーバ</span><i>→</i><span class="hop">NetworkPolicy を上書き</span><i>→</i><span class="hop goal">外へ自由に通信</span></div>
+          <div class="fix">
+            <div class="why"><b>なぜ通ったか</b><p>Role は来場者に許している。CI は YAML しか見ないので、Pod の中から API を叩く操作は止められない。</p></div>
+            <div class="how"><b>どう塞いだか</b><p>来場者の ServiceAccount からは、NetworkPolicy、quota、LimitRange を変えられないようにした。</p></div>
+          </div>
         </article>
-        <article class="hole">
-          <span class="who">Grafana の閲覧者が、任意の SQL を流せる（設計のときに気づいた）</span>
-          <dl>
-            <dt>攻め方</dt><dd>ログインなしの閲覧者でも、Grafana の <code>/api/ds/query</code> にはクエリを送れる。</dd>
-            <dt>危険</dt><dd>書き込める DB ユーザーでつなぐと、閲覧者が DB を書き換えられる。</dd>
-            <dt>対策</dt><dd>Grafana から DB へは、統計だけを読める専用のロールでつなぐ。テーブルの中身、DELETE、ファイルの読み出しは拒否されることを確かめた。</dd>
-          </dl>
+        <article class="breach">
+          <span class="tag">エージェントが、設計のときに指摘した</span>
+          <h3>見るだけのはずの人が、DB に SQL を送れる</h3>
+          <div class="route" aria-label="通り道"><span class="hop">ログインなしの閲覧者</span><i>→</i><span class="hop bad">Grafana の API<small>/api/ds/query</small></span><i>→</i><span class="hop goal">Grafana の DB</span></div>
+          <div class="fix">
+            <div class="why"><b>なぜ通ったか</b><p>Grafana は閲覧者にも、データソースへのクエリを許している。</p></div>
+            <div class="how"><b>どう塞いだか</b><p>統計だけを読めるロールでつないだ。テーブルの中身、削除、ファイルの読み出しは拒否されることを確かめた。</p></div>
+          </div>
         </article>
-        <article class="hole">
-          <span class="who">自分で作った穴</span>
-          <dl>
-            <dt>やったこと</dt><dd>ディスクを埋められないよう、ephemeral-storage に既定値 1Gi、namespace の合計 2Gi の上限を付けた。</dd>
-            <dt>結果</dt><dd>Pod が 3 つ以上あるアプリが、quota に弾かれて起動しなくなった。すでに動いている Pod には新しい上限がかからないので、VM を作り直すまで気づかなかった。</dd>
-            <dt>対策</dt><dd>既定値を 200Mi、合計を 5Gi にした。制限は、作り直した環境で確かめる。</dd>
-          </dl>
+        <article class="breach">
+          <span class="tag">運営の設定ミス</span>
+          <h3>守るための上限で、正しいアプリを止めた</h3>
+          <div class="route" aria-label="通り道"><span class="hop bad">ディスクの上限を追加<small>既定 1Gi、合計 2Gi</small></span><i>→</i><span class="hop">Pod が 3 つのアプリ</span><i>→</i><span class="hop goal">quota を超えて起動しない</span></div>
+          <div class="fix">
+            <div class="why"><b>なぜ通ったか</b><p>すでに動いている Pod には新しい上限がかからない。VM を作り直すまで気づかなかった。</p></div>
+            <div class="how"><b>どう塞いだか</b><p>既定を 200Mi、合計を 5Gi にした。制限を変えたら、作り直した環境で確かめる。</p></div>
+          </div>
         </article>
       </div>
     </section>
+    <div class="pager"><button type="button" data-go="attack">前へ：攻めてみる</button><button type="button" class="next" data-go="agent">次へ：エージェント</button></div>
+    </div>
 
-    <section id="numbers">
-      <div class="sec-head"><span class="hex"></span><h2>1 アプリに渡している量</h2></div>
-      <p class="lede">namespace ごとの ResourceQuota と LimitRange です。来場者が limits を書かなくても、既定値で収まるようにしてあります。</p>
-      <div class="limits">
-        <table>
-          <thead><tr><th>項目</th><th>上限</th><th>理由</th></tr></thead>
-          <tbody>
-            <tr><td>CPU</td><td class="n">requests 2 / limits 4</td><td>1 つのアプリがノードを使い切らないため</td></tr>
-            <tr><td>メモリ</td><td class="n">requests 2Gi / limits 4Gi</td><td>同上</td></tr>
-            <tr><td>Pod</td><td class="n">10</td><td>Pod を増やしてノードを埋めさせないため</td></tr>
-            <tr><td>PVC</td><td class="n">2 個、合わせて 2Gi</td><td>PVC はノードのディスクから切り出すため</td></tr>
-            <tr><td>emptyDir とログ</td><td class="n">5Gi（1 コンテナの既定 200Mi）</td><td>ノードのディスクを埋めさせないため</td></tr>
-            <tr><td>ConfigMap、Secret</td><td class="n">各 30</td><td>API サーバのデータストアを埋めさせないため</td></tr>
-            <tr><td>Job、CronJob</td><td class="n">30、10</td><td>同上</td></tr>
-            <tr><td>LoadBalancer、NodePort</td><td class="n">0</td><td>公開の入口を Gateway だけにするため</td></tr>
-            <tr><td>Pod 内のプロセス</td><td class="n">1024</td><td>fork bomb でノードの PID を使い切らせないため。kubelet で設定</td></tr>
-            <tr><td>Gateway への新しい接続</td><td class="n">1 IP あたり 300 本/秒</td><td>大量の接続で Gateway を埋めさせないため。会場の Wi-Fi は NAT で全員が同じ IP になるので、多めにしている</td></tr>
-          </tbody>
-        </table>
+    <div class="panel" role="tabpanel" id="p-agent" aria-labelledby="tab-agent" hidden>
+    <section id="s-agent">
+      <div class="sec-head"><span class="hex"></span><h2>エージェントが PR を書く前提のリポジトリ</h2></div>
+      <p class="lede">来場者の YAML は、AI エージェントが書くことも多いはずです。</p>
+      <div class="agent-split">
+        <div class="pass"><b>リポジトリは、通すため</b>
+          <ul class="plain">
+            <li>手順は <code>AGENTS.md</code> に 1 つだけ</li>
+            <li>CI のエラーは、直し方まで書く</li>
+            <li><code>apps/example/</code> をコピーして 3 か所変えれば動く</li>
+          </ul>
+        </div>
+        <div class="stop"><b>クラスタは、止めるため</b><p>誰が書いた YAML でも、API サーバと実行時の仕組みで同じように縛る。</p></div>
       </div>
+      <div class="agent-proof"><p>README と AGENTS.md だけを渡したエージェントが、Mailpit を選んで CI を通る PR を出した。</p></div>
     </section>
+    <div class="pager"><button type="button" data-go="holes">前へ：見つけた穴</button><button type="button" class="next" data-go="youki">次へ：youki</button></div>
+    </div>
 
-    <section id="youki">
+    <div class="panel" role="tabpanel" id="p-youki" aria-labelledby="tab-youki" hidden>
+    <section id="s-youki">
       <div class="sec-head"><span class="hex"></span><h2>コンテナランタイムは youki</h2></div>
-      <p class="lede">来場者の Pod は、Rust で書かれたランタイム youki で動いています。MutatingAdmissionPolicy が、何も書かれていない Pod に <code>runtimeClassName: youki</code> を付けます。</p>
-      <div class="holes">
-        <article class="hole">
-          <span class="who">本当は user namespace で守りたかった</span>
-          <dl>
-            <dt>理想</dt><dd>Pod に <code>hostUsers: false</code> を付ければ、コンテナの中の root がノードでは権限のない UID になる。root のまま暴れられても怖くない。</dd>
-            <dt>現実</dt><dd>youki ではまだ使えなかった。そこで、root は許したうえで、特権、hostPath、capability を 1 つずつ剥がしている。</dd>
-            <dt>代わりに</dt><dd>コンテナの中から user namespace を作ろうとしたプロセスは、Tetragon がカーネルで止める。コンテナから抜け出す CVE の入口になりやすいため。</dd>
-          </dl>
-        </article>
-        <article class="hole">
-          <span class="who">youki のバグを踏んだ</span>
-          <dl>
-            <dt>症状</dt><dd>CloudNativePG の PostgreSQL が起動しない。</dd>
-            <dt>原因</dt><dd>youki 0.7.0 は、実行ファイルの「その他」の実行ビットしか見ない。CloudNativePG は manager を <code>0750</code> で置くので、runc では動くのに youki では拒否される。</dd>
-            <dt>対処</dt><dd>CloudNativePG の Pod だけ runc にした。上流には、再現手順を付けて報告する。</dd>
-          </dl>
-        </article>
-      </div>
+      <p class="lede">来場者の Pod は、Rust で書かれた youki で動いています。<br>本当は user namespace で root ごと無害にしたかったのですが、youki ではまだ使えず、代わりに Tetragon で止めています。</p>
     </section>
-
-    <section id="watch">
-      <div class="sec-head"><span class="hex"></span><h2>見えるようにする</h2></div>
-      <p class="lede">止めたことは、会場の大画面でも見られます。</p>
-      <div class="goals">
-        <div class="goal"><b>Grafana「防いだ攻撃」</b><p>API サーバが拒否した YAML、NetworkPolicy が落とした通信、Tetragon が止めた user namespace、<code>/tmp</code> からの実行を数えている。</p></div>
-        <div class="goal"><b>Argo CD を読み取りだけで公開</b><p>自分の PR が同期されていく様子を見られる。ログ、exec、sync はできず、ログインの API も Gateway で塞いでいる。</p></div>
-        <div class="goal"><b>怪しい実行を後から探す</b><p>Tetragon のログから、書き込める場所に置かれたファイルの実行を拾うスクリプトを用意した。止めずに記録だけしている。</p></div>
-      </div>
-    </section>
-
-    <section id="todo">
-      <div class="sec-head"><span class="hex"></span><h2>割り切ったこと</h2></div>
-      <p class="lede">全部を塞いだわけではありません。展示の期間だけ動けばよい、という前提で選んだことです。</p>
-      <div class="todo">
-        <div class="item"><b>PVC の置き場</b><p>k3s の local-path は、PVC の容量の上限を守りません。PVC は 49G の別のファイルシステムに置いたので、埋められてもノードは止まりません。ただし、ほかのアプリの PVC とは同じ領域を分け合います。</p></div>
-        <div class="item"><b>Secret は公開</b><p>リポジトリが公開なので、Secret に書いた値は誰でも読めます。来場者には、見られても困らない値だけを書いてもらっています。</p></div>
-        <div class="item"><b>VM は 1 台</b><p>壊れたら作り直す前提です。<code>bootstrap.sh</code> を 1 回流せば、10 分ほどで同じクラスタができます。</p></div>
-        <div class="item"><b>外向きの 443 番</b><p>アプリが外の API を使えるよう、443 番は開けています。トンネルを張られる余地は残るので、実行の記録で見張っています。</p></div>
-      </div>
-    </section>
+    <div class="pager"><button type="button" data-go="agent">前へ：エージェント</button></div>
+    </div>
 
     <footer>
       <div class="links">
@@ -503,7 +555,7 @@ data:
       { group: "ノードを狙う", title: "hostPath でノードのファイルを読む",
         what: "Pod に hostPath の volume を書き、ノードの / をマウントする。",
         layers: { ci: "stop", argo: null, api: "stop", run: null },
-        how: ["CI の check.py が、使える volume の種類を確かめる", "Pod Security の baseline が hostPath を拒否する", "VAP showcase-volume が、許した 8 種類以外の volume を拒否する"],
+        how: ["CI の check.py が、使える volume の種類を確かめる", "Pod Security の baseline が hostPath を拒否する", "VAP showcase-volume が、許した 8 種類以外の volume を拒否する"],
         why: "hostPath だけを禁止するのではなく、使ってよい種類を列挙している。新しい種類の volume が増えても通らない。",
         code: `<span class="c"># policies/volume.yaml の考え方（要約）</span>
     volume の種類は、次のどれかだけ:
@@ -538,7 +590,7 @@ data:
               - action: Sigkill`,
         src: "oss-showcase-platform/namespace-defaults/tetragon.yaml" },
       { group: "ノードを狙う", title: "Gateway を踏み台に kubelet へ",
-        what: "手で書いた EndpointSlice にノードの IP と 10250 番を書き、HTTPRoute で公開する。",
+        what: "手で書いた EndpointSlice にノードの IP と 10250 番を書き、HTTPRoute で公開する。",
         layers: { ci: "stop", argo: null, api: "stop", run: null },
         how: ["CI が EndpointSlice と ExternalName を拒否する", "VAP が、来場者の namespace の EndpointSlice を Kubernetes のコントローラだけに書かせる"],
         why: "Gateway の Envoy はノードのネットワークで動くので、NetworkPolicy がかからない。実際に、外から kubelet に届いた。",
@@ -563,7 +615,7 @@ data:
       { group: "隣のアプリを狙う", title: "ほかの namespace に書き込む",
         what: "YAML の metadata.namespace に kube-system や、ほかの来場者の app-xxx を書く。",
         layers: { ci: "stop", argo: "stop", api: "stop", run: null },
-        how: ["CI が、app-&lt;名前&gt; 以外の namespace を拒否する", "Argo CD の行き先は app-&lt;ディレクトリ名&gt; に固定", "VAP showcase-tenant が、アプリごとに書ける namespace を 1 つに絞る"],
+        how: ["CI が、app-&lt;名前&gt; 以外の namespace を拒否する", "Argo CD の行き先は app-&lt;ディレクトリ名&gt; に固定", "VAP showcase-tenant が、アプリごとに書ける namespace を 1 つに絞る"],
         why: "kube-system という名前のディレクトリを作られても、行き先は app-kube-system になるので無害。",
         code: `<span class="c"># argocd/applicationset.yaml</span>
     destination:
@@ -609,10 +661,10 @@ data:
         src: "oss-showcase-platform/policies/runtime.yaml" },
 
       { group: "外を狙う", title: "クラウドのメタデータサーバを読む",
-        what: "Pod から 169.254.169.254 に HTTP でつなぎ、VM の認証情報を取る。",
+        what: "Pod から 169.254.169.254 に HTTP でつなぎ、VM の認証情報を取る。",
         layers: { ci: null, argo: null, api: null, run: "stop" },
-        how: ["CiliumNetworkPolicy の egressDeny で、169.254.0.0/16 を拒否する"],
-        why: "メタデータサーバは world の 80 番に含まれる。80 番を開けたままでも、ここだけは届かないようにした。",
+        how: ["CiliumNetworkPolicy の egressDeny で、169.254.0.0/16 を拒否する"],
+        why: "メタデータサーバは world の 80 番に含まれる。80 番を開けたままでも、ここだけは届かないようにした。",
         code: `<span class="c"># namespace-defaults/network-policy.yaml</span>
     egressDeny:
       - toCIDR:
@@ -623,29 +675,20 @@ data:
           - 100.64.0.0/10`,
         src: "oss-showcase-platform/namespace-defaults/network-policy.yaml" },
       { group: "外を狙う", title: "スキャンやスパムの送信元にする",
-        what: "Pod からインターネットの 22 番や 25 番に大量につなぐ。",
+        what: "Pod からインターネットの 22 番や 25 番に大量につなぐ。",
         layers: { ci: null, argo: null, api: null, run: "stop" },
-        how: ["外向きは、DNS、API サーバ、80 番、443 番だけ", "VM がつながる内部ネットワークのアドレスにも届かない"],
+        how: ["外向きは、DNS、API サーバ、80 番、443 番だけ", "VM がつながる内部ネットワークのアドレスにも届かない"],
         why: "会場のクラスタから、よそを攻撃させないため。",
         code: `<span class="c"># namespace-defaults/network-policy.yaml（抜粋）</span>
-    <span class="c"># 外向きは DNS、API サーバ、80 番と 443 番だけにする。スキャンやスパムの送信元にされないため</span>
+    <span class="c"># 外向きは DNS、API サーバ、80 番と 443 番だけにする。スキャンやスパムの送信元にされないため</span>
     - toEntities: [world, host, remote-node]
       toPorts:
         - ports:
             - port: "80"
             - port: "443"`,
         src: "oss-showcase-platform/namespace-defaults/network-policy.yaml" },
-      { group: "外を狙う", title: "/tmp にトンネルを落として実行する",
-        what: "443 番でバイナリをダウンロードし、/tmp に置いて実行する。外へのトンネルを張る。",
-        layers: { ci: null, argo: null, api: null, run: "log" },
-        how: ["Tetragon が、すべてのプロセスの実行を記録している", "書き込める場所に置いたファイルの実行を、スクリプトで後から拾う"],
-        why: "/tmp からの実行を止めると、正しいアプリまで壊れる。だから止めずに記録し、Grafana にも数を出している。",
-        code: `<span class="c"># scripts/suspicious_exec.py</span>
-    PREFIXES = ("/tmp/", "/var/tmp/", "/dev/shm/", "/run/")
-    <span class="c"># 加えて、Pod の emptyDir と ConfigMap のマウント先</span>`,
-        src: "oss-showcase-platform/scripts/suspicious_exec.py" },
       { group: "外を狙う", title: "怪しいレジストリのイメージを使う",
-        what: "image に、IP を直書きしたレジストリや 10.0.0.1.nip.io/x を書く。",
+        what: "image に、IP を直書きしたレジストリや 10.0.0.1.nip.io/x を書く。",
         layers: { ci: "stop", argo: null, api: "stop", run: "stop" },
         how: ["CI と VAP showcase-image が、許したレジストリ以外を拒否する", "内部ネットワーク宛ての通信は、そもそも egressDeny で届かない"],
         why: "最初は IP の直書きを禁止したが、nip.io で迂回できた。許すレジストリを列挙する形に変えた。",
@@ -657,7 +700,7 @@ data:
       { group: "外を狙う", title: "LoadBalancer や NodePort で直接公開する",
         what: "Service の type を LoadBalancer にする。Ingress を書く。",
         layers: { ci: "stop", argo: "stop", api: "stop", run: null },
-        how: ["CI が Ingress と externalIPs を拒否する", "AppProject は Ingress を作らせない", "ResourceQuota で LoadBalancer と NodePort を 0 にしている"],
+        how: ["CI が Ingress と externalIPs を拒否する", "AppProject は Ingress を作らせない", "ResourceQuota で LoadBalancer と NodePort を 0 にしている"],
         why: "外への入口を Gateway だけにする。TLS もレート制限も、そこでまとめてかけられる。",
         code: `<span class="c"># namespace-defaults/quota.yaml</span>
     <span class="c"># 外部への公開は Gateway だけにする</span>
@@ -668,8 +711,8 @@ data:
       { group: "資源を食う", title: "CPU を使い切る",
         what: "マイニングや無限ループで、ノードの CPU を使い切る。",
         layers: { ci: null, argo: null, api: "stop", run: "stop" },
-        how: ["LimitRange が、limits を書かないコンテナに CPU 500m を付ける", "ResourceQuota で、1 アプリの合計を 4 コアまでにする", "cgroup がそれ以上を使わせない"],
-        why: "ノードは 8 コア。1 つのアプリが暴れても、ほかの展示が動く分を残す。",
+        how: ["LimitRange が、limits を書かないコンテナに CPU 500m を付ける", "ResourceQuota で、1 アプリの合計を 4 コアまでにする", "cgroup がそれ以上を使わせない"],
+        why: "ノードは 8 コア。1 つのアプリが暴れても、ほかの展示が動く分を残す。",
         code: `<span class="c"># namespace-defaults/quota.yaml と limits.yaml（抜粋）</span>
     requests.cpu: "2"
     limits.cpu: "4"
@@ -680,27 +723,25 @@ data:
       { group: "資源を食う", title: "fork bomb",
         what: "プロセスを増やし続けて、ノードの PID を使い切る。",
         layers: { ci: null, argo: null, api: null, run: "stop" },
-        how: ["kubelet の pod-max-pids で、Pod ごとのプロセス数を 1024 までにしている"],
+        how: ["kubelet の pod-max-pids で、Pod ごとのプロセス数を 1024 までにしている"],
         why: "PID はノード全体で共有している。使い切られると、運営のコンポーネントも新しいプロセスを作れなくなる。",
         code: `<span class="c"># bootstrap.sh</span>
     <span class="c"># Pod ごとのプロセス数に上限を付ける。fork bomb でノード全体の PID を使い切られないため</span>
     --kubelet-arg=pod-max-pids=1024`,
         src: "oss-showcase-platform/bootstrap.sh" },
       { group: "資源を食う", title: "ディスクを埋める",
-        what: "emptyDir、ログ、PVC に書き込み続ける。",
+        what: "emptyDir やログに書き込み続ける。",
         layers: { ci: null, argo: null, api: "stop", run: "stop" },
-        how: ["ephemeral-storage の上限で、emptyDir とログを 1 アプリ 5Gi までにする", "PVC は 49G の別のファイルシステムに置いている"],
-        why: "local-path は PVC の容量の上限を守らない。埋められても、ノードの / は埋まらないようにした。",
+        how: ["ephemeral-storage の上限で、emptyDir とログを 1 アプリ 5Gi までにする", "LimitRange が、書かれていないコンテナに 200Mi の上限を付ける"],
+        why: "emptyDir とログは、ノードのディスクを直接使う。上限がないと、ほかの展示も一緒に止まる。",
         code: `<span class="c"># namespace-defaults/quota.yaml</span>
     <span class="c"># emptyDir とログでノードのディスクを埋められないようにする</span>
-    limits.ephemeral-storage: 5Gi
-    persistentvolumeclaims: "2"
-    requests.storage: 2Gi`,
+    limits.ephemeral-storage: 5Gi`,
         src: "oss-showcase-platform/namespace-defaults/quota.yaml" },
       { group: "資源を食う", title: "ConfigMap を大量に作る",
         what: "Job から ConfigMap や Secret を作り続け、API サーバのデータストアを埋める。",
         layers: { ci: null, argo: null, api: "stop", run: null },
-        how: ["ResourceQuota で、ConfigMap と Secret を 30 個、Job を 30 個、CronJob を 10 個までにする"],
+        how: ["ResourceQuota で、ConfigMap と Secret を 30 個、Job を 30 個、CronJob を 10 個までにする"],
         why: "来場者は Role で、自分の ServiceAccount に作成を許せる。数を絞らないと、クラスタ全体が遅くなる。",
         code: `<span class="c"># namespace-defaults/quota.yaml</span>
     configmaps: "30"
@@ -709,9 +750,9 @@ data:
     count/cronjobs.batch: "10"`,
         src: "oss-showcase-platform/namespace-defaults/quota.yaml" },
       { group: "資源を食う", title: "大量の接続で Gateway を埋める",
-        what: "1 つの IP から、Gateway に新しい接続を大量に張る。",
+        what: "1 つの IP から、Gateway に新しい接続を大量に張る。",
         layers: { ci: null, argo: null, api: null, run: "stop" },
-        how: ["ノードの nftables で、送信元の IP ごとに新しい接続を 1 秒 300 本までにする"],
+        how: ["ノードの nftables で、送信元の IP ごとに新しい接続を 1 秒 300 本までにする"],
         why: "Gateway API と Cilium の Gateway には、レート制限の仕組みがない。会場の Wi-Fi は NAT なので、上限は多めにしている。",
         code: `<span class="c"># node/ratelimit.nft</span>
     tcp dport { 80, 443 } ct state new
@@ -749,7 +790,6 @@ data:
     function show(i) {
       const a = ATTACKS[i];
       document.querySelectorAll(".attack-btn").forEach((b) => b.setAttribute("aria-pressed", String(b.id === `attack-${i}`)));
-      $("a-group").textContent = a.group;
       $("a-title").textContent = a.title;
       $("a-what").textContent = a.what;
       $("a-how").innerHTML = a.how.map((h) => `<li>${h}</li>`).join("");
@@ -775,10 +815,43 @@ data:
       const cur = document.querySelector('.attack-btn[aria-pressed="true"]');
       if (cur) show(Number(cur.id.split("-")[1]));
     });
+
+    // タブ。#名前 で開き、← → でも切り替えられる
+    const TAB_KEYS = [...document.querySelectorAll(".tab")].map((t) => t.dataset.k);
+    function openTab(k, focus) {
+      if (!TAB_KEYS.includes(k)) k = TAB_KEYS[0];
+      document.querySelectorAll(".tab").forEach((t) => {
+        const on = t.dataset.k === k;
+        t.setAttribute("aria-selected", String(on));
+        t.tabIndex = on ? 0 : -1;
+        if (on && focus) t.focus();
+      });
+      document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.id !== `p-${k}`; });
+      // ヒーローは最初のタブだけに出す。ほかのタブは、開いたらすぐ中身が見える
+      document.querySelector(".hero").hidden = k !== TAB_KEYS[0];
+      if (k === "attack") {
+        const cur = document.querySelector('.attack-btn[aria-pressed="true"]');
+        show(cur ? Number(cur.id.split("-")[1]) : 0);
+      }
+    }
+    function go(k) {
+      if (location.hash.slice(1) !== k) location.hash = k; else openTab(k);
+      window.scrollTo({ top: 0 });
+    }
+    document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => go(t.dataset.k)));
+    document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
+    window.addEventListener("hashchange", () => openTab(location.hash.slice(1)));
+    document.addEventListener("keydown", (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      const i = TAB_KEYS.indexOf(document.querySelector('.tab[aria-selected="true"]').dataset.k);
+      const j = i + (e.key === "ArrowRight" ? 1 : -1);
+      if (j >= 0 && j < TAB_KEYS.length) { e.preventDefault(); go(TAB_KEYS[j]); }
+    });
+    openTab(location.hash.slice(1));
     </script>
 
     </body>
     </html>
 kind: ConfigMap
 metadata:
-  name: security
+  name: showcase-platform
