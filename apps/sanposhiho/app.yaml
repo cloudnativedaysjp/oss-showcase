@@ -4,7 +4,8 @@ kind: Deployment
 metadata:
   name: sanposhiho
 spec:
-  replicas: 1
+  # キーノートの間、片方が落ちても資料を出し続ける
+  replicas: 2
   selector:
     matchLabels:
       app: sanposhiho
@@ -49,14 +50,14 @@ spec:
               port: 8080
             periodSeconds: 20
           # requests と limits を揃えて、ノードが混んでも削られないようにする
-          # 更新のときに Pod が一時的に 2 つになっても、namespace の requests の上限（CPU 2 コア）に収まる値にする
+          # 更新のときに Pod が一時的に 3 つになっても、namespace の requests の上限（CPU 4 コア）に収まる値にする
           resources:
             requests:
               cpu: "1"
-              memory: 512Mi
+              memory: 1Gi
             limits:
               cpu: "1"
-              memory: 512Mi
+              memory: 1Gi
           volumeMounts:
             - name: app
               mountPath: /app
