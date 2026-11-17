@@ -1,0 +1,76 @@
+# 発表中のスライドに、聴衆のコメントを右から左へ流すための小さなサーバ。
+# 投稿ページ（/）、投稿の受付、スライドへの受け渡し、一括停止（/admin）を持つ。状態はメモリだけで、Pod が作り直されると消える。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comments
+spec:
+  replicas: 1   # コメントをメモリに持つので、増やさない
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: comments
+  template:
+    metadata:
+      labels:
+        app: comments
+      annotations:
+        # コードが変わったら Pod を作り直すための印
+        comments/code-sha256: "a8f9dc3b6eaf37f74a38442aa70184efc98a0aae2089fc781849943bdbb1d0ad"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: app
+          image: node:22-alpine
+          command: ["node", "/app/server.js"]
+          env:
+            - name: PORT
+              value: "8080"
+            # 管理用の合言葉の SHA-256。合言葉そのものは、このリポジトリには書いていない
+            - name: ADMIN_SHA256
+              value: "665a94e59446c91a93468bbca05c7384f85b92c3d85a4a82b7ff4508cc7e6dbe"
+          ports:
+            - containerPort: 8080
+          securityContext:
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: app
+              mountPath: /app
+      volumes:
+        - name: app
+          configMap:
+            name: comments
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comments
+spec:
+  selector:
+    app: comments
+  ports:
+    - port: 80
+      targetPort: 8080
