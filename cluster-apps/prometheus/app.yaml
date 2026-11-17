@@ -54,13 +54,13 @@ data:
           insecure_skip_verify: true
         kubernetes_sd_configs:
           - role: node
-        # 来場者のアプリの CPU、メモリ、通信量、OOM、起動時刻だけを残す。全部取るとメモリが足りない
+        # 全部取るとメモリが足りないので、次だけを残す
+        # - 来場者のアプリの CPU、メモリ、通信量、OOM、起動時刻
+        # - ノード全体（id="/"）の CPU、メモリ、ディスクと、マシンの CPU 数とメモリ量
         metric_relabel_configs:
-          - source_labels: [__name__]
-            regex: container_(cpu_usage_seconds_total|memory_working_set_bytes|network_(receive|transmit)_bytes_total|oom_events_total|start_time_seconds)
-            action: keep
-          - source_labels: [namespace]
-            regex: app-.+
+          - source_labels: [__name__, namespace, id, device]
+            regex: >-
+              container_(cpu_usage_seconds_total|memory_working_set_bytes|network_(receive|transmit)_bytes_total|oom_events_total|start_time_seconds);app-.+;.*;.*|container_(cpu_usage_seconds_total|memory_working_set_bytes);;/;.*|container_fs_(usage|limit)_bytes;;/;/dev/(vd|sd|nvme|loop).*|machine_(cpu_cores|memory_bytes);.*;.*;.*
             action: keep
       # ここから下は Grafana の「防いだ攻撃」に出す
       - job_name: apiserver
@@ -126,6 +126,8 @@ spec:
           image: prom/prometheus:v3.16.0-distroless@sha256:e8b8fb0e336fe0affce6f9ea347b11d24975465fd3ba8119420186679c3efd5f
           args:
             - --config.file=/etc/prometheus/prometheus.yml
+            # ConfigMap を変えたら、Pod を作り直さずに読み直す。作り直すと emptyDir のデータが消える
+            - --config.auto-reload
             - --storage.tsdb.path=/prometheus
             - --storage.tsdb.retention.time=1d
             - --storage.tsdb.retention.size=800MB

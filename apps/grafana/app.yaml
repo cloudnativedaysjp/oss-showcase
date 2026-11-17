@@ -374,7 +374,7 @@
 #               },
 #               {
 #                 "type": "row",
-#                 "title": "アプリのランキング",
+#                 "title": "ノード全体",
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
@@ -383,6 +383,283 @@
 #                   "h": 1
 #                 },
 #                 "id": 8
+#               },
+#               {
+#                 "type": "gauge",
+#                 "title": "CPU",
+#                 "description": "ノードの CPU のうち、使っている割合",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "percentunit",
+#                     "min": 0,
+#                     "max": 1,
+#                     "decimals": 0,
+#                     "thresholds": {
+#                       "mode": "absolute",
+#                       "steps": [
+#                         {
+#                           "color": "green",
+#                           "value": null
+#                         },
+#                         {
+#                           "color": "orange",
+#                           "value": 0.7
+#                         },
+#                         {
+#                           "color": "red",
+#                           "value": 0.9
+#                         }
+#                       ]
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   },
+#                   "showThresholdMarkers": true
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[2m])) / max(machine_cpu_cores)"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 17,
+#                   "w": 4,
+#                   "h": 7
+#                 },
+#                 "id": 9
+#               },
+#               {
+#                 "type": "gauge",
+#                 "title": "メモリ",
+#                 "description": "ノードのメモリのうち、使っている割合。ページキャッシュは含まない",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "percentunit",
+#                     "min": 0,
+#                     "max": 1,
+#                     "decimals": 0,
+#                     "thresholds": {
+#                       "mode": "absolute",
+#                       "steps": [
+#                         {
+#                           "color": "green",
+#                           "value": null
+#                         },
+#                         {
+#                           "color": "orange",
+#                           "value": 0.7
+#                         },
+#                         {
+#                           "color": "red",
+#                           "value": 0.9
+#                         }
+#                       ]
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   },
+#                   "showThresholdMarkers": true
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum(container_memory_working_set_bytes{id=\"/\"}) / max(machine_memory_bytes)"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 4,
+#                   "y": 17,
+#                   "w": 4,
+#                   "h": 7
+#                 },
+#                 "id": 10
+#               },
+#               {
+#                 "type": "gauge",
+#                 "title": "ディスク",
+#                 "description": "ノードの root ディスクの使用率",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "percentunit",
+#                     "min": 0,
+#                     "max": 1,
+#                     "decimals": 0,
+#                     "thresholds": {
+#                       "mode": "absolute",
+#                       "steps": [
+#                         {
+#                           "color": "green",
+#                           "value": null
+#                         },
+#                         {
+#                           "color": "orange",
+#                           "value": 0.7
+#                         },
+#                         {
+#                           "color": "red",
+#                           "value": 0.9
+#                         }
+#                       ]
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   },
+#                   "showThresholdMarkers": true
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum(container_fs_usage_bytes{id=\"/\", device=~\"/dev/(vd|sd|nvme)[a-z]+1\"}) / sum(container_fs_limit_bytes{id=\"/\", device=~\"/dev/(vd|sd|nvme)[a-z]+1\"})"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 8,
+#                   "y": 17,
+#                   "w": 4,
+#                   "h": 7
+#                 },
+#                 "id": 11
+#               },
+#               {
+#                 "type": "gauge",
+#                 "title": "PVC の置き場",
+#                 "description": "PVC を置くループデバイスの使用率。全部のアプリで分け合う",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "percentunit",
+#                     "min": 0,
+#                     "max": 1,
+#                     "decimals": 0,
+#                     "thresholds": {
+#                       "mode": "absolute",
+#                       "steps": [
+#                         {
+#                           "color": "green",
+#                           "value": null
+#                         },
+#                         {
+#                           "color": "orange",
+#                           "value": 0.7
+#                         },
+#                         {
+#                           "color": "red",
+#                           "value": 0.9
+#                         }
+#                       ]
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "reduceOptions": {
+#                     "calcs": [
+#                       "lastNotNull"
+#                     ]
+#                   },
+#                   "showThresholdMarkers": true
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum(container_fs_usage_bytes{id=\"/\", device=~\"/dev/loop.*\"}) / sum(container_fs_limit_bytes{id=\"/\", device=~\"/dev/loop.*\"})"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 12,
+#                   "y": 17,
+#                   "w": 4,
+#                   "h": 7
+#                 },
+#                 "id": 12
+#               },
+#               {
+#                 "type": "timeseries",
+#                 "title": "CPU とメモリの使用率",
+#                 "datasource": {
+#                   "type": "prometheus",
+#                   "uid": "prometheus"
+#                 },
+#                 "fieldConfig": {
+#                   "defaults": {
+#                     "unit": "percentunit",
+#                     "custom": {
+#                       "fillOpacity": 15,
+#                       "lineWidth": 2,
+#                       "stacking": {
+#                         "mode": "none"
+#                       }
+#                     }
+#                   }
+#                 },
+#                 "options": {
+#                   "legend": {
+#                     "displayMode": "list",
+#                     "placement": "bottom"
+#                   }
+#                 },
+#                 "targets": [
+#                   {
+#                     "refId": "A",
+#                     "expr": "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[2m])) / max(machine_cpu_cores)",
+#                     "legendFormat": "CPU"
+#                   },
+#                   {
+#                     "refId": "B",
+#                     "expr": "sum(container_memory_working_set_bytes{id=\"/\"}) / max(machine_memory_bytes)",
+#                     "legendFormat": "メモリ"
+#                   }
+#                 ],
+#                 "gridPos": {
+#                   "x": 16,
+#                   "y": 17,
+#                   "w": 8,
+#                   "h": 7
+#                 },
+#                 "id": 13
+#               },
+#               {
+#                 "type": "row",
+#                 "title": "アプリのランキング",
+#                 "collapsed": false,
+#                 "gridPos": {
+#                   "x": 0,
+#                   "y": 24,
+#                   "w": 24,
+#                   "h": 1
+#                 },
+#                 "id": 14
 #               },
 #               {
 #                 "type": "bargauge",
@@ -422,11 +699,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 17,
+#                   "y": 25,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 9
+#                 "id": 15
 #               },
 #               {
 #                 "type": "bargauge",
@@ -466,11 +743,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 17,
+#                   "y": 25,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 10
+#                 "id": 16
 #               },
 #               {
 #                 "type": "bargauge",
@@ -510,23 +787,23 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 17,
+#                   "y": 25,
 #                   "w": 8,
 #                   "h": 8
 #                 },
-#                 "id": 11
+#                 "id": 17
 #               },
 #               {
 #                 "type": "row",
-#                 "title": "クラスタの生き物感",
+#                 "title": "クラスタの生態系",
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 25,
+#                   "y": 33,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 12
+#                 "id": 18
 #               },
 #               {
 #                 "type": "stat",
@@ -566,11 +843,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 26,
+#                   "y": 34,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 13
+#                 "id": 19
 #               },
 #               {
 #                 "type": "stat",
@@ -610,11 +887,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 4,
-#                   "y": 26,
+#                   "y": 34,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 14
+#                 "id": 20
 #               },
 #               {
 #                 "type": "stat",
@@ -654,11 +931,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 26,
+#                   "y": 34,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 15
+#                 "id": 21
 #               },
 #               {
 #                 "type": "stat",
@@ -698,11 +975,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 26,
+#                   "y": 34,
 #                   "w": 4,
 #                   "h": 6
 #                 },
-#                 "id": 16
+#                 "id": 22
 #               },
 #               {
 #                 "type": "gauge",
@@ -735,11 +1012,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 26,
+#                   "y": 34,
 #                   "w": 8,
 #                   "h": 6
 #                 },
-#                 "id": 17
+#                 "id": 23
 #               },
 #               {
 #                 "type": "timeseries",
@@ -776,11 +1053,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 32,
+#                   "y": 40,
 #                   "w": 12,
 #                   "h": 9
 #                 },
-#                 "id": 18
+#                 "id": 24
 #               },
 #               {
 #                 "type": "timeseries",
@@ -816,11 +1093,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 12,
-#                   "y": 32,
+#                   "y": 40,
 #                   "w": 12,
 #                   "h": 9
 #                 },
-#                 "id": 19
+#                 "id": 25
 #               },
 #               {
 #                 "type": "row",
@@ -828,11 +1105,11 @@
 #                 "collapsed": false,
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 41,
+#                   "y": 49,
 #                   "w": 24,
 #                   "h": 1
 #                 },
-#                 "id": 20
+#                 "id": 26
 #               },
 #               {
 #                 "type": "stat",
@@ -874,11 +1151,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 0,
-#                   "y": 42,
+#                   "y": 50,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 21
+#                 "id": 27
 #               },
 #               {
 #                 "type": "stat",
@@ -920,11 +1197,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 8,
-#                   "y": 42,
+#                   "y": 50,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 22
+#                 "id": 28
 #               },
 #               {
 #                 "type": "stat",
@@ -966,11 +1243,11 @@
 #                 ],
 #                 "gridPos": {
 #                   "x": 16,
-#                   "y": 42,
+#                   "y": 50,
 #                   "w": 8,
 #                   "h": 4
 #                 },
-#                 "id": 23
+#                 "id": 29
 #               }
 #             ]
 #           }
@@ -1395,7 +1672,7 @@ data:
           },
           {
             "type": "row",
-            "title": "アプリのランキング",
+            "title": "ノード全体",
             "collapsed": false,
             "gridPos": {
               "x": 0,
@@ -1404,6 +1681,283 @@ data:
               "h": 1
             },
             "id": 8
+          },
+          {
+            "type": "gauge",
+            "title": "CPU",
+            "description": "ノードの CPU のうち、使っている割合",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "decimals": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              },
+              "showThresholdMarkers": true
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[2m])) / max(machine_cpu_cores)"
+              }
+            ],
+            "gridPos": {
+              "x": 0,
+              "y": 17,
+              "w": 4,
+              "h": 7
+            },
+            "id": 9
+          },
+          {
+            "type": "gauge",
+            "title": "メモリ",
+            "description": "ノードのメモリのうち、使っている割合。ページキャッシュは含まない",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "decimals": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              },
+              "showThresholdMarkers": true
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum(container_memory_working_set_bytes{id=\"/\"}) / max(machine_memory_bytes)"
+              }
+            ],
+            "gridPos": {
+              "x": 4,
+              "y": 17,
+              "w": 4,
+              "h": 7
+            },
+            "id": 10
+          },
+          {
+            "type": "gauge",
+            "title": "ディスク",
+            "description": "ノードの root ディスクの使用率",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "decimals": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              },
+              "showThresholdMarkers": true
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum(container_fs_usage_bytes{id=\"/\", device=~\"/dev/(vd|sd|nvme)[a-z]+1\"}) / sum(container_fs_limit_bytes{id=\"/\", device=~\"/dev/(vd|sd|nvme)[a-z]+1\"})"
+              }
+            ],
+            "gridPos": {
+              "x": 8,
+              "y": 17,
+              "w": 4,
+              "h": 7
+            },
+            "id": 11
+          },
+          {
+            "type": "gauge",
+            "title": "PVC の置き場",
+            "description": "PVC を置くループデバイスの使用率。全部のアプリで分け合う",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "decimals": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ]
+              },
+              "showThresholdMarkers": true
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum(container_fs_usage_bytes{id=\"/\", device=~\"/dev/loop.*\"}) / sum(container_fs_limit_bytes{id=\"/\", device=~\"/dev/loop.*\"})"
+              }
+            ],
+            "gridPos": {
+              "x": 12,
+              "y": 17,
+              "w": 4,
+              "h": 7
+            },
+            "id": 12
+          },
+          {
+            "type": "timeseries",
+            "title": "CPU とメモリの使用率",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "custom": {
+                  "fillOpacity": 15,
+                  "lineWidth": 2,
+                  "stacking": {
+                    "mode": "none"
+                  }
+                }
+              }
+            },
+            "options": {
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "targets": [
+              {
+                "refId": "A",
+                "expr": "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[2m])) / max(machine_cpu_cores)",
+                "legendFormat": "CPU"
+              },
+              {
+                "refId": "B",
+                "expr": "sum(container_memory_working_set_bytes{id=\"/\"}) / max(machine_memory_bytes)",
+                "legendFormat": "メモリ"
+              }
+            ],
+            "gridPos": {
+              "x": 16,
+              "y": 17,
+              "w": 8,
+              "h": 7
+            },
+            "id": 13
+          },
+          {
+            "type": "row",
+            "title": "アプリのランキング",
+            "collapsed": false,
+            "gridPos": {
+              "x": 0,
+              "y": 24,
+              "w": 24,
+              "h": 1
+            },
+            "id": 14
           },
           {
             "type": "bargauge",
@@ -1443,11 +1997,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 17,
+              "y": 25,
               "w": 8,
               "h": 8
             },
-            "id": 9
+            "id": 15
           },
           {
             "type": "bargauge",
@@ -1487,11 +2041,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 17,
+              "y": 25,
               "w": 8,
               "h": 8
             },
-            "id": 10
+            "id": 16
           },
           {
             "type": "bargauge",
@@ -1531,23 +2085,23 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 17,
+              "y": 25,
               "w": 8,
               "h": 8
             },
-            "id": 11
+            "id": 17
           },
           {
             "type": "row",
-            "title": "クラスタの生き物感",
+            "title": "クラスタの生態系",
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 25,
+              "y": 33,
               "w": 24,
               "h": 1
             },
-            "id": 12
+            "id": 18
           },
           {
             "type": "stat",
@@ -1587,11 +2141,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 26,
+              "y": 34,
               "w": 4,
               "h": 6
             },
-            "id": 13
+            "id": 19
           },
           {
             "type": "stat",
@@ -1631,11 +2185,11 @@ data:
             ],
             "gridPos": {
               "x": 4,
-              "y": 26,
+              "y": 34,
               "w": 4,
               "h": 6
             },
-            "id": 14
+            "id": 20
           },
           {
             "type": "stat",
@@ -1675,11 +2229,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 26,
+              "y": 34,
               "w": 4,
               "h": 6
             },
-            "id": 15
+            "id": 21
           },
           {
             "type": "stat",
@@ -1719,11 +2273,11 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 26,
+              "y": 34,
               "w": 4,
               "h": 6
             },
-            "id": 16
+            "id": 22
           },
           {
             "type": "gauge",
@@ -1756,11 +2310,11 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 26,
+              "y": 34,
               "w": 8,
               "h": 6
             },
-            "id": 17
+            "id": 23
           },
           {
             "type": "timeseries",
@@ -1797,11 +2351,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 32,
+              "y": 40,
               "w": 12,
               "h": 9
             },
-            "id": 18
+            "id": 24
           },
           {
             "type": "timeseries",
@@ -1837,11 +2391,11 @@ data:
             ],
             "gridPos": {
               "x": 12,
-              "y": 32,
+              "y": 40,
               "w": 12,
               "h": 9
             },
-            "id": 19
+            "id": 25
           },
           {
             "type": "row",
@@ -1849,11 +2403,11 @@ data:
             "collapsed": false,
             "gridPos": {
               "x": 0,
-              "y": 41,
+              "y": 49,
               "w": 24,
               "h": 1
             },
-            "id": 20
+            "id": 26
           },
           {
             "type": "stat",
@@ -1895,11 +2449,11 @@ data:
             ],
             "gridPos": {
               "x": 0,
-              "y": 42,
+              "y": 50,
               "w": 8,
               "h": 4
             },
-            "id": 21
+            "id": 27
           },
           {
             "type": "stat",
@@ -1941,11 +2495,11 @@ data:
             ],
             "gridPos": {
               "x": 8,
-              "y": 42,
+              "y": 50,
               "w": 8,
               "h": 4
             },
-            "id": 22
+            "id": 28
           },
           {
             "type": "stat",
@@ -1987,11 +2541,11 @@ data:
             ],
             "gridPos": {
               "x": 16,
-              "y": 42,
+              "y": 50,
               "w": 8,
               "h": 4
             },
-            "id": 23
+            "id": 29
           }
         ]
       }
@@ -2079,9 +2633,9 @@ spec:
         app.kubernetes.io/version: "13.3.1"
       annotations:
         checksum/config: 0eb1f4d0ee770c7d886bbcaff3f353f2e94868186aac70cfe3c1e482b672ce6e
-        checksum/dashboards-json-config: cceb2c5fbb55bc1ca8f346794d83e3a7807d99ce1403838da9a2af110c1f0210
+        checksum/dashboards-json-config: 90c978ddca367fb51e3dbab3224ad432bbd894e8549d8fc3a3085b5365686f79
         checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
-        checksum/secret: 1c54f5336b737e9c9fc1df185baae359782707e7fa6ee0ad8a64099e086b6d39
+        checksum/secret: 13a378c58948539ff7d1b67abdf88b3a35cbcb71366eb0cf9637489907e48f58
         kubectl.kubernetes.io/default-container: grafana
     spec:
       
