@@ -34,7 +34,7 @@ spec:
               value: "8080"
             # 管理用の合言葉の SHA-256。合言葉そのものは、このリポジトリには書いていない
             - name: ADMIN_SHA256
-              value: "665a94e59446c91a93468bbca05c7384f85b92c3d85a4a82b7ff4508cc7e6dbe"
+              value: "2798f0be434676464d3a05b3d62bd47c1068653349843378653916c9e5b87833"
           ports:
             - containerPort: 8080
           securityContext:
