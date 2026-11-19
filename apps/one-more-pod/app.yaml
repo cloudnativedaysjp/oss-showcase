@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: one-more-pod
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: one-more-pod
+  template:
+    metadata:
+      labels:
+        app: one-more-pod
+    spec:
+      containers:
+        - name: one-more-pod
+          image: ghcr.io/moz-sec/one-more-pod:v0.1.0@sha256:4b4232e13e1a007767cc52011dfa14f7a79eb61b21ab3ceff82bf8348e5b97ac
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: one-more-pod-db-app
+                  key: uri
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /readyz, port: 8080}
+          livenessProbe:
+            httpGet: {path: /healthz, port: 8080}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: one-more-pod
+spec:
+  selector:
+    app: one-more-pod
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: one-more-pod
+spec:
+  parentRefs:
+    - name: showcase
+      namespace: gateway
+  hostnames:
+    - one-more-pod.showcase.cloudnativedays.jp
+  rules:
+    - backendRefs:
+        - name: one-more-pod
+          port: 80
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: one-more-pod-db
+spec:
+  instances: 1
+  storage:
+    size: 1Gi
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 512Mi}
